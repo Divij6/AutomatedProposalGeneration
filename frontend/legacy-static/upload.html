@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Tender | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="upload" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main page-section">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Upload tender documents</h1>
+          <p class="page-subtitle">Bring in the tender package, preview the extracted summary, and choose how the response should be structured.</p>
+        </div>
+        <div class="badge"><iconify-icon icon="lucide:folder-open"></iconify-icon> Accepts PDF, DOCX, XLSX, PPTX</div>
+      </div>
+
+      <section class="upload-layout">
+        <div class="steppers">
+          <div class="step is-active"><div class="step__index">1</div><strong>Upload</strong><p class="muted">Bring tender files into the workspace.</p></div>
+          <div class="step is-active"><div class="step__index">2</div><strong>Parse</strong><p class="muted">Extract sections, tables, and metadata.</p></div>
+          <div class="step"><div class="step__index">3</div><strong>Extract</strong><p class="muted">Build tender fields and summary signals.</p></div>
+          <div class="step"><div class="step__index">4</div><strong>Summary</strong><p class="muted">Route into the next AI stage.</p></div>
+        </div>
+
+        <section class="card dropzone">
+          <div class="dropzone__icon"><iconify-icon icon="lucide:file-up"></iconify-icon></div>
+          <h2 class="panel-title">Drop tender files here</h2>
+          <p class="section-subtitle">This moves the UI into the processing stage. Backend upload wiring can be attached here next.</p>
+          <div class="hero-actions" style="justify-content:center;">
+            <button class="btn btn--primary" data-action="go-processing">Select documents</button>
+            <a class="btn btn--ghost" href="dashboard.html">Skip to dashboard</a>
+          </div>
+        </section>
+
+        <section class="timeline-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Tender analysis preview</h2>
+              <p class="section-subtitle">Representative output from parsing and analysis.</p>
+            </div>
+            <span class="status-pill status-pill--done">Summary ready</span>
+          </div>
+
+          <div class="summary-grid">
+            <div><div class="meta-label">Project</div><div class="kpi-number" style="font-size:1.3rem;" data-tender-name>National Digital Infrastructure Expansion Project</div></div>
+            <div><div class="meta-label">Deadline</div><div class="kpi-number" style="font-size:1.3rem;">15 Oct 2024</div></div>
+            <div><div class="meta-label">Budget</div><div class="kpi-number" style="font-size:1.3rem;">$2.4M - $3.1M</div></div>
+            <div><div class="meta-label">Scope</div><div class="kpi-number" style="font-size:1.3rem;">Cloud + AI support</div></div>
+          </div>
+        </section>
+
+        <section class="timeline-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Choose response structure</h2>
+              <p class="section-subtitle">Decide whether the proposal follows the tender layout or your internal template.</p>
+            </div>
+            <span class="status-pill status-pill--review" data-selected-mode>Company template selected</span>
+          </div>
+
+          <div class="choice-grid">
+            <article class="choice-card" data-mode-card="tender">
+              <div class="choice-card__top"><div class="metric-icon"><iconify-icon icon="lucide:scroll-text"></iconify-icon></div><div class="choice-mark"></div></div>
+              <h3>Tender-defined format</h3>
+              <p>Keep section order and annexure structure exactly as the tender prescribes.</p>
+            </article>
+            <article class="choice-card" data-mode-card="company">
+              <div class="choice-card__top"><div class="metric-icon"><iconify-icon icon="lucide:layout-template"></iconify-icon></div><div class="choice-mark"></div></div>
+              <h3>Company proposal template</h3>
+              <p>Map the tender into your internal proposal structure for consistency.</p>
+            </article>
+          </div>
+
+          <div class="inline-actions" style="justify-content:center;">
+            <a class="btn btn--primary" href="processing.html">Continue to processing <iconify-icon icon="lucide:arrow-right"></iconify-icon></a>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export Package | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="export" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main page-section">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Export package</h1>
+          <p class="page-subtitle">Package the reviewed proposal for delivery and capture feedback that can improve the next tender cycle.</p>
+        </div>
+        <div class="badge"><iconify-icon icon="lucide:package-open"></iconify-icon> Export bundle ready</div>
+      </div>
+
+      <section class="export-grid">
+        <article class="export-card">
+          <div class="panel-head"><div><h2 class="panel-title">Output bundle</h2><p class="section-subtitle">Representative output formats for the final submission set.</p></div></div>
+          <div class="export-list">
+            <div class="export-item"><span><strong>Technical proposal (.docx)</strong><br><span class="muted">Editable proposal document</span></span><span class="status-pill status-pill--done">Ready</span></div>
+            <div class="export-item"><span><strong>Financial bid (.xlsx)</strong><br><span class="muted">Pricing workbook and schedules</span></span><span class="status-pill status-pill--done">Ready</span></div>
+            <div class="export-item"><span><strong>Submission package (.zip)</strong><br><span class="muted">All documents bundled for delivery</span></span><span class="status-pill status-pill--done">Ready</span></div>
+          </div>
+          <div class="inline-actions">
+            <a class="btn btn--primary" href="proposal.html">Back to draft</a>
+            <a class="btn btn--ghost" href="dashboard.html">Return to dashboard</a>
+          </div>
+        </article>
+
+        <article class="export-card">
+          <div class="panel-head"><div><h2 class="panel-title">Feedback for the next run</h2><p class="section-subtitle">Capture reviewer notes so future proposal generation can improve.</p></div></div>
+          <form class="auth-form" data-feedback-form>
+            <div class="field">
+              <label>What needed the most manual work?
+                <input type="text" name="manual_work_area" placeholder="Example: financial tables or technical narrative">
+              </label>
+            </div>
+            <div class="field">
+              <label>What should be learned for next time?
+                <textarea name="feedback_notes" placeholder="Example: reuse stronger methodology text for solar tenders and store updated certification details."></textarea>
+              </label>
+            </div>
+            <button class="btn btn--primary" type="submit">Save feedback</button>
+          </form>
+          <div class="info-note" data-feedback-status>Feedback has not been saved yet.</div>
+        </article>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

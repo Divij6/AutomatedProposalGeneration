@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datasmith AI | Proposal Workflow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="home">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main">
+      <section class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="badge"><iconify-icon icon="lucide:sparkles"></iconify-icon> Datasmith AI proposal workflow</div>
+            <h1>Proposal automation that respects the tender, the reviewer, and the submission deadline.</h1>
+            <p>
+              The frontend now mirrors the full user journey: onboarding, upload, structure selection,
+              processing, confidence review, drafting, approval, export, and feedback.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn--primary" href="login.html">Get Started <iconify-icon icon="lucide:arrow-right"></iconify-icon></a>
+              <a class="btn btn--ghost" href="upload.html">Jump to tender upload</a>
+            </div>
+            <div class="badge-row">
+              <div class="badge"><iconify-icon icon="lucide:file-search-2"></iconify-icon> Parsing + analysis flow represented</div>
+              <div class="badge"><iconify-icon icon="lucide:badge-check"></iconify-icon> Confidence review separated</div>
+              <div class="badge"><iconify-icon icon="lucide:package-check"></iconify-icon> Export and feedback path added</div>
+            </div>
+          </div>
+
+          <div class="hero-visual">
+            <div class="wave-stage">
+              <svg viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,160 C320,300 420,20 640,160 C860,300 960,20 1280,160 C1600,300 1700,20 1920,160" stroke="#E8500A" stroke-width="4"/></svg>
+              <svg viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,120 C480,0 480,240 960,120 C1440,0 1440,240 1920,120" stroke="#F59E0B" stroke-width="3"/></svg>
+              <svg viewBox="0 0 1440 320" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,200 C320,100 640,300 960,200 C1280,100 1600,300 1920,200" stroke="#FB923C" stroke-width="2"/></svg>
+              <div class="wave-stage__center"><div class="pulse-node"><iconify-icon icon="lucide:zap"></iconify-icon></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page-section" id="workflow">
+        <div class="section-head">
+          <div>
+            <h2 class="section-title">A cleaner end-to-end journey</h2>
+            <p class="section-subtitle">The frontend now behaves like a real product flow instead of a collection of static screens.</p>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <article class="card">
+            <div class="metric-icon"><iconify-icon icon="lucide:log-in"></iconify-icon></div>
+            <h3>Onboarding</h3>
+            <p>Create a company workspace and continue into the platform with your source files ready.</p>
+          </article>
+          <article class="card">
+            <div class="metric-icon"><iconify-icon icon="lucide:folder-up"></iconify-icon></div>
+            <h3>Upload and processing</h3>
+            <p>Move from tender upload into parsing, extraction, retrieval, and auto-fill preparation.</p>
+          </article>
+          <article class="card">
+            <div class="metric-icon"><iconify-icon icon="lucide:clipboard-check"></iconify-icon></div>
+            <h3>Review and export</h3>
+            <p>Separate confidence review, draft editing, approval, export, and feedback into their own pages.</p>
+          </article>
+        </div>
+
+        <div class="stats-grid" style="margin-top:1.2rem;">
+          <div class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:shield-check"></iconify-icon></div><div><div class="kpi-label">Review gates</div><div class="kpi-number">Visible</div><p>Warnings and critical issues have a dedicated home.</p></div></div>
+          <div class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:file-pen-line"></iconify-icon></div><div><div class="kpi-label">Draft editing</div><div class="kpi-number">Inline shell</div><p>Proposal editing remains a dedicated workspace.</p></div></div>
+          <div class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:stamp"></iconify-icon></div><div><div class="kpi-label">Approval</div><div class="kpi-number">Separated</div><p>Approve versus request changes is explicit.</p></div></div>
+          <div class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:repeat"></iconify-icon></div><div><div class="kpi-label">Feedback</div><div class="kpi-number">Tracked</div><p>Reviewer input can feed the next iteration.</p></div></div>
+        </div>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

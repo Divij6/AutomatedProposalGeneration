@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="login">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="auth-page">
+      <section class="auth-shell">
+        <aside class="auth-hero auth-hero--compact">
+          <div class="badge"><iconify-icon icon="lucide:building-2"></iconify-icon> Workspace setup</div>
+          <h1 class="page-title">Set up your company workspace and move straight into tender generation.</h1>
+          <p class="page-subtitle">
+            Keep onboarding simple: create the workspace once, attach your knowledge base and proposal template,
+            and continue into the dashboard.
+          </p>
+
+          <div class="auth-points">
+            <div class="auth-point">
+              <div class="metric-icon"><iconify-icon icon="lucide:user-round"></iconify-icon></div>
+              <div>
+                <strong>One company workspace</strong>
+                <p>Use a single operating email and password for now.</p>
+              </div>
+            </div>
+            <div class="auth-point">
+              <div class="metric-icon"><iconify-icon icon="lucide:file-stack"></iconify-icon></div>
+              <div>
+                <strong>Attach source material</strong>
+                <p>Upload your knowledge base and proposal template during signup.</p>
+              </div>
+            </div>
+            <div class="auth-point">
+              <div class="metric-icon"><iconify-icon icon="lucide:layout-dashboard"></iconify-icon></div>
+              <div>
+                <strong>Continue without friction</strong>
+                <p>Once saved, the dashboard and upload flow are unlocked in this browser.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="auth-card auth-card--clean">
+          <div class="auth-tabs">
+            <button class="auth-tab is-active" type="button" data-auth-tab="login">Log In</button>
+            <button class="auth-tab" type="button" data-auth-tab="signup">Create Workspace</button>
+          </div>
+
+          <div data-auth-message class="auth-message auth-message--info">Use your company email to sign in or create a workspace to begin.</div>
+
+          <div data-auth-panel="login">
+            <form class="auth-form" data-login-form>
+              <div class="field">
+                <label>Email
+                  <input type="email" name="email" placeholder="you@company.com" required>
+                </label>
+              </div>
+              <div class="field">
+                <label>Password
+                  <input type="password" name="password" placeholder="Enter your password" required>
+                </label>
+              </div>
+              <button class="btn btn--primary auth-submit" type="submit">Log In <iconify-icon icon="lucide:arrow-right"></iconify-icon></button>
+            </form>
+          </div>
+
+          <div class="hidden" data-auth-panel="signup">
+            <form class="auth-form" data-signup-form enctype="multipart/form-data">
+              <div class="field-grid">
+                <div class="field">
+                  <label>Company name
+                    <input type="text" name="company_name" placeholder="ABC Infra Pvt Ltd" required>
+                  </label>
+                </div>
+                <div class="field">
+                  <label>Industry
+                    <input type="text" name="industry" placeholder="Infrastructure / Energy / Consulting" required>
+                  </label>
+                </div>
+              </div>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label>Contact email
+                    <input type="email" name="contact_email" placeholder="ops@company.com" required>
+                  </label>
+                </div>
+                <div class="field">
+                  <label>Contact phone
+                    <input type="tel" name="contact_phone" placeholder="+91 98765 43210" required>
+                  </label>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Password
+                  <input type="password" name="password" placeholder="Create a strong password" required>
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label>Knowledge base
+                    <input type="file" name="knowledge_base" accept=".pdf,.doc,.docx,.xlsx,.csv,.json,.txt">
+                  </label>
+                </div>
+                <div class="field">
+                  <label>Proposal template
+                    <input type="file" name="proposal_template" accept=".doc,.docx,.xlsx,.pdf,.ppt,.pptx">
+                  </label>
+                </div>
+              </div>
+
+              <button class="btn btn--primary auth-submit" type="submit">Create Workspace <iconify-icon icon="lucide:user-plus"></iconify-icon></button>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

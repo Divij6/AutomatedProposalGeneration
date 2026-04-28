@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="dashboard" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main page-section">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">The central workspace for uploads, drafts, review queues, and export-ready proposal packages.</p>
+        </div>
+        <a class="btn btn--primary" href="upload.html">Upload new tender <iconify-icon icon="lucide:plus"></iconify-icon></a>
+      </div>
+
+      <section class="kpi-grid">
+        <article class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:file-stack"></iconify-icon></div><div><div class="kpi-label">Total proposals</div><div class="kpi-number">128</div><p>Tracked across active and archived bids.</p></div></article>
+        <article class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:circle-check-big"></iconify-icon></div><div><div class="kpi-label">Completed</div><div class="kpi-number">22</div><p>Submission package generated and stored.</p></div></article>
+        <article class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:triangle-alert"></iconify-icon></div><div><div class="kpi-label">Needs review</div><div class="kpi-number">03</div><p>Waiting on human or compliance approval.</p></div></article>
+        <article class="metric-card"><div class="metric-icon"><iconify-icon icon="lucide:zap"></iconify-icon></div><div><div class="kpi-label">Auto-fill rate</div><div class="kpi-number">94.2%</div><p>Average completion across recent runs.</p></div></article>
+      </section>
+
+      <section class="dashboard-layout page-section" style="padding-top:1rem;">
+        <section class="table-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Recent proposals</h2>
+              <p class="section-subtitle">Representative pipeline jobs and their current review state.</p>
+            </div>
+            <a class="subtle-link" href="proposal.html">Open latest draft</a>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>Proposal</th><th>Client</th><th>Status</th><th>Last update</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Cloud Infrastructure Tender</strong></td><td>GovTech Solutions</td><td><span class="status-pill status-pill--review">In review</span></td><td>2h ago</td></tr>
+                <tr><td><strong>AI Implementation Plan</strong></td><td>Nexus Corp</td><td><span class="status-pill status-pill--done">Completed</span></td><td>Yesterday</td></tr>
+                <tr><td><strong>Smart City RFP Phase 2</strong></td><td>City Council</td><td><span class="status-pill status-pill--draft">Draft</span></td><td>Oct 12</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="sidebar-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Next actions</h2>
+              <p class="section-subtitle">Jump directly into the part of the workflow you need.</p>
+            </div>
+          </div>
+          <div class="quick-list">
+            <a class="quick-link" href="proposal.html" data-open-proposal><span><strong>Draft proposal</strong><br><span class="muted">Open editor and suggestion shell</span></span><iconify-icon icon="lucide:arrow-right"></iconify-icon></a>
+            <a class="quick-link" href="review.html"><span><strong>Confidence review</strong><br><span class="muted">Handle warnings, missing fields, and approval flow</span></span><iconify-icon icon="lucide:clipboard-check"></iconify-icon></a>
+            <a class="quick-link" href="export.html"><span><strong>Export package</strong><br><span class="muted">Download proposal assets and capture feedback</span></span><iconify-icon icon="lucide:package-check"></iconify-icon></a>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

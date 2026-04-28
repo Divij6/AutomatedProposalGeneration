@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confidence Review | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="review" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main page-section">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Confidence review</h1>
+          <p class="page-subtitle">Separate auto-filled content into ready, review-needed, and missing items before the reviewer approves or sends it back for changes.</p>
+        </div>
+        <div class="badge"><iconify-icon icon="lucide:badge-alert"></iconify-icon> Review pack for <span data-tender-name>National Digital Infrastructure Expansion Project</span></div>
+      </div>
+
+      <section class="timeline-card">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Confidence buckets</h2>
+            <p class="section-subtitle">Filter the proposal issues by urgency and approval readiness.</p>
+          </div>
+        </div>
+        <div class="review-filter-row">
+          <button class="review-filter is-active" type="button" data-review-filter="all">All items</button>
+          <button class="review-filter" type="button" data-review-filter="critical">Missing information</button>
+          <button class="review-filter" type="button" data-review-filter="warning">Needs review</button>
+          <button class="review-filter" type="button" data-review-filter="ok">High confidence</button>
+        </div>
+      </section>
+
+      <section class="review-grid">
+        <article class="review-card" data-review-card="critical"><div class="review-card__head"><h3>Team Size</h3><span class="status-pill status-pill--danger">Missing</span></div><div class="issue-strip issue-strip--critical">Mandatory field missing. This needs to be completed before submission.</div></article>
+        <article class="review-card" data-review-card="warning"><div class="review-card__head"><h3>Technical Methodology</h3><span class="status-pill status-pill--warning">Needs review</span></div><div class="issue-strip issue-strip--warning">Confidence 63%. The narrative exists, but it should be checked for scope alignment.</div></article>
+        <article class="review-card" data-review-card="ok"><div class="review-card__head"><h3>Company Name</h3><span class="status-pill status-pill--done">High confidence</span></div><div class="issue-strip issue-strip--ok">Auto-filled and ready for approval.</div></article>
+        <article class="review-card" data-review-card="warning"><div class="review-card__head"><h3>Team Details Table</h3><span class="status-pill status-pill--warning">Needs review</span></div><div class="issue-strip issue-strip--warning">One row has partial data and should be checked before export.</div></article>
+      </section>
+
+      <section class="timeline-card">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Approval decisions</h2>
+            <p class="section-subtitle">Choose whether the draft moves forward or goes back to editing.</p>
+          </div>
+        </div>
+        <div class="inline-actions" style="justify-content:center; margin-top:0;">
+          <button class="btn btn--ghost" type="button" data-request-changes>Request changes</button>
+          <button class="btn btn--primary" type="button" data-approve-review>Approve and continue</button>
+        </div>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

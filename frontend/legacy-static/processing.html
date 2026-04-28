@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic Processing | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="processing" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <main class="page-main page-section">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Agentic processing</h1>
+          <p class="page-subtitle">This stage represents structure identification, tender data extraction, knowledge retrieval, and auto-fill preparation.</p>
+        </div>
+        <div class="badge"><iconify-icon icon="lucide:brain"></iconify-icon> Working on <span data-tender-name>National Digital Infrastructure Expansion Project</span></div>
+      </div>
+
+      <section class="workflow-band">
+        <div class="workflow-steps">
+          <div class="workflow-step is-active"><div class="workflow-step__icon"><iconify-icon icon="lucide:shape-line"></iconify-icon></div><strong>Identify structure</strong><p>Detect sections, annexures, mandatory fields, and table patterns.</p></div>
+          <div class="workflow-step is-active"><div class="workflow-step__icon"><iconify-icon icon="lucide:file-search"></iconify-icon></div><strong>Extract tender data</strong><p>Build normalized field lists and structural context.</p></div>
+          <div class="workflow-step is-active"><div class="workflow-step__icon"><iconify-icon icon="lucide:database-zap"></iconify-icon></div><strong>Query knowledge base</strong><p>Retrieve matching company facts, evidence, and reusable content.</p></div>
+          <div class="workflow-step is-active"><div class="workflow-step__icon"><iconify-icon icon="lucide:square-pen"></iconify-icon></div><strong>Prepare draft</strong><p>Populate text, tables, and drafted sections before review.</p></div>
+        </div>
+      </section>
+
+      <section class="review-grid page-section" style="padding-top:1rem;">
+        <article class="review-card"><div class="review-card__head"><h3>Tender structure</h3><span class="status-pill status-pill--done">Ready</span></div><p>Detected 18 fillable fields, 3 tables requiring input, and 3 annexures.</p></article>
+        <article class="review-card"><div class="review-card__head"><h3>Knowledge retrieval</h3><span class="status-pill status-pill--done">Matched</span></div><p>16 fields grounded against the organisation knowledge base with hybrid retrieval.</p></article>
+        <article class="review-card"><div class="review-card__head"><h3>Drafting</h3><span class="status-pill status-pill--review">In progress</span></div><p>Technical narrative, declarations, and field mapping are assembled for proposal preview.</p></article>
+        <article class="review-card"><div class="review-card__head"><h3>Reviewer handoff</h3><span class="status-pill status-pill--warning">Next</span></div><p>Confidence tiers, missing information, and override points are prepared for review.</p></article>
+      </section>
+
+      <section class="timeline-card">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">What happens next</h2>
+            <p class="section-subtitle">Move into the workspace dashboard or open the confidence review directly.</p>
+          </div>
+        </div>
+        <div class="inline-actions" style="justify-content:center; margin-top:0;">
+          <a class="btn btn--primary" href="dashboard.html">Open dashboard</a>
+          <a class="btn btn--ghost" href="review.html">Go to review</a>
+        </div>
+      </section>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>

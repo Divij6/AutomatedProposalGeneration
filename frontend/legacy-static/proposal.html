@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposal Draft | Datasmith AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body data-page="proposal" data-auth-required="true">
+  <div class="shell">
+    <div data-nav></div>
+
+    <div class="proposal-header">
+      <div class="proposal-header__inner">
+        <div>
+          <div class="meta-label">Draft editor</div>
+          <strong>Proposal_GovTech_Tender_2024.docx</strong>
+          <div class="muted">Mode: <span data-proposal-mode-text>Company proposal template</span></div>
+        </div>
+        <div class="inline-actions" style="margin-top:0;">
+          <span class="status-pill status-pill--done">14 fields ready</span>
+          <span class="status-pill status-pill--warning">3 need review</span>
+          <span class="status-pill status-pill--danger">2 missing</span>
+        </div>
+      </div>
+    </div>
+
+    <main class="page-main page-section" style="padding-top: 1.5rem;">
+      <div class="proposal-layout">
+        <aside class="sidebar-card">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Document structure</h2>
+              <p class="section-subtitle">Quick navigation for the proposal editor shell.</p>
+            </div>
+          </div>
+          <nav class="outline-list">
+            <a class="outline-link is-active" href="#" data-outline-target="#exec-summary">Executive summary</a>
+            <a class="outline-link" href="#" data-outline-target="#scope">Project scope</a>
+            <a class="outline-link" href="#" data-outline-target="#timeline">Timeline</a>
+            <a class="outline-link" href="#" data-outline-target="#budget">Budget & pricing</a>
+            <a class="outline-link" href="#" data-outline-target="#risk">Risk assessment</a>
+          </nav>
+        </aside>
+
+        <section class="editor-card">
+          <div class="doc-meta">
+            <div>
+              <div class="meta-label">Proposal editor</div>
+              <h1 class="panel-title" style="margin-top:0.2rem;">Tender response draft</h1>
+            </div>
+            <div class="editor-toolbar">
+              <span class="badge"><iconify-icon icon="lucide:sparkles"></iconify-icon> AI assistant active</span>
+              <a class="btn btn--ghost" href="review.html">Open confidence review</a>
+              <a class="btn btn--primary" href="review.html">Save and review</a>
+            </div>
+          </div>
+
+          <div class="doc-content">
+            <section id="exec-summary">
+              <h2 class="panel-title" style="font-size:1.6rem;">Executive Summary</h2>
+              <p>Our organisation is pleased to submit this response for the National Digital Infrastructure Expansion Project. Based on the tender scope and the retrieved company knowledge base, the draft aligns technical capability, delivery confidence, and compliance readiness into a single response package.</p>
+              <div class="suggestion"><strong>AI suggestion</strong><p>Our team includes 45+ certified infrastructure engineers with public sector delivery experience across multi-site deployments and audit-sensitive environments.</p></div>
+              <p>The current draft structure respects the selected proposal mode while still surfacing missing evidence, low-confidence sections, and reviewer intervention points before final export.</p>
+            </section>
+            <section id="scope">
+              <h2 class="panel-title" style="font-size:1.6rem;">Project Scope</h2>
+              <p>The proposed scope covers cloud architecture modernization, staged migration planning, implementation oversight, and operational support design. This page is ready to receive real generated content from the drafting pipeline.</p>
+              <div class="callout"><strong>High-confidence content</strong><p>This section is ready for high-confidence content from the proposal generator and verification flow.</p></div>
+            </section>
+            <section id="timeline">
+              <h2 class="panel-title" style="font-size:1.6rem;">Timeline</h2>
+              <p>The implementation timeline is structured into discovery, transition, rollout, and stabilization stages. We can later replace this placeholder paragraph with real timeline data from the generated proposal JSON.</p>
+            </section>
+            <section id="budget">
+              <h2 class="panel-title" style="font-size:1.6rem;">Budget & Pricing</h2>
+              <div class="review-block"><strong>Needs review</strong><p>The tender requires a specific SLA percentage and detailed pricing assumptions. This block mirrors the warning path that later feeds into reviewer approval.</p></div>
+            </section>
+            <section id="risk">
+              <h2 class="panel-title" style="font-size:1.6rem;">Risk Assessment</h2>
+              <p>Potential delivery risks include source data quality, legacy dependency complexity, and approval cycle delays. Verification and reviewer actions are handled on the next screen.</p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div data-footer></div>
+  </div>
+</body>
+</html>
