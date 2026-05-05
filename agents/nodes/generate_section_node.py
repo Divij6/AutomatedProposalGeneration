@@ -1,10 +1,13 @@
 from openai import OpenAI
 import json
+import logging
 import re
 import time
 
 from pipeline_one.retrieval.retrieve_context import retrieve_section_context
 from config import COHERE_KEY, QDRANT_URL, QDRANT_KEY
+
+logger = logging.getLogger(__name__)
 
 
 client = OpenAI(
@@ -138,16 +141,16 @@ def _call_llm(prompt: str, max_tokens: int = 300, temperature: float = 0.1) -> s
         max_tokens=max_tokens,
     )
     choices = getattr(response, "choices", None) or []
-    print("DEBUG generate LLM choices length:", len(choices))
-    print("DEBUG generate LLM accessing choices index:", 0)
+    logger.debug("Generate LLM choices length: %s", len(choices))
+    logger.debug("Generate LLM accessing choices index: 0")
     if not choices:
-        print("WARNING: generate LLM returned no choices")
+        logger.warning("Generate LLM returned no choices")
         return ""
 
     message = getattr(choices[0], "message", None)
     content = getattr(message, "content", "") if message else ""
     if not content:
-        print("WARNING: generate LLM returned empty content")
+        logger.warning("Generate LLM returned empty content")
     return content or ""
 
 
@@ -158,18 +161,18 @@ def generate_section_node(state: dict) -> dict:
 
     if not title:
         index = state.get("section_index", 0)
-        print("WARNING: current_section is missing a title in generate node; skipping")
-        print("DEBUG current_section:", section)
-        print("DEBUG section_index:", index)
+        logger.warning("Current section is missing a title in generate node; skipping")
+        logger.debug("Current section: %s", section)
+        logger.debug("Section index: %s", index)
         state["section_index"] = index + 1
         return state
 
     if state.get("skip_section"):
-        print(f"  [SKIP] {title}")
+        logger.info("[SKIP] %s", title)
         state["section_index"] += 1
         return state
 
-    print(f"\n  [GENERATE] {title}\n")
+    logger.info("[GENERATE] %s", title)
 
     try:
         context_items = retrieve_section_context(
@@ -182,7 +185,7 @@ def generate_section_node(state: dict) -> dict:
             doc_id=state.get("doc_id"),
         )
     except Exception as e:
-        print(f"WARNING: context retrieval failed for section '{title}': {e}")
+        logger.warning("Context retrieval failed for section '%s': %s", title, e)
         context_items = []
     state["context"] = context_items
 
@@ -194,7 +197,25 @@ def generate_section_node(state: dict) -> dict:
 
     notes_text = ""
 
-    if mode == "table":
+    if mode == "table" and section.get("is_form_field"):
+        prompt = f"""You are filling one short form field in a tender proposal document.
+
+FIELD LABEL:
+{title}
+
+RELEVANT COMPANY KNOWLEDGE:
+{company_context}
+
+YOUR TASK:
+Return only the field value. Keep it concise. Use retrieved company knowledge only.
+If the value is not available, write "Details available on request."
+No markdown."""
+        generated_text = _call_llm(prompt=prompt, max_tokens=120, temperature=0.1)
+        notes_text = ""
+        if not generated_text.strip():
+            generated_text = "Details available on request."
+
+    elif mode == "table":
         prompt = f"""You are filling a technical offer table in a tender response document.
 
 SPECIFICATION REQUIRED BY TENDER:
@@ -293,7 +314,7 @@ Content:"""
         flags=re.IGNORECASE,
     ).strip()
 
-    print(f"  -> {generated_text[:120]}...")
+    logger.info("Generated content preview: %s...", generated_text[:120])
 
     state["generated_sections"].append({
         "title": title,
@@ -304,6 +325,9 @@ Content:"""
         "tbl_index": section.get("tbl_index"),
         "row_index": section.get("row_index"),
         "required_col": section.get("required_col"),
+        "fill_col_index": section.get("fill_col_index"),
+        "notes_col_index": section.get("notes_col_index"),
+        "is_form_field": section.get("is_form_field") is True,
     })
 
     time.sleep(1)

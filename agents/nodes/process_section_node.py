@@ -67,39 +67,43 @@ from pipeline_one.retrieval.retrieve_context import (
     retrieve_section_context
 )
 
+import logging
+
 from config import (
     COHERE_KEY,
     QDRANT_URL,
     QDRANT_KEY
 )
 
+logger = logging.getLogger(__name__)
+
 
 def process_section_node(state: dict) -> dict:
     sections = state.get("proposal_sections") or []
     index = state.get("section_index", 0)
 
-    print("DEBUG proposal_sections length:", len(sections))
-    print("DEBUG accessing proposal_sections index:", index)
+    logger.debug("Proposal sections length: %s", len(sections))
+    logger.debug("Accessing proposal_sections index: %s", index)
 
     if index < 0:
-        print(f"WARNING: negative section_index {index}; resetting to 0")
+        logger.warning("Negative section_index %s; resetting to 0", index)
         index = 0
         state["section_index"] = index
 
     if index >= len(sections):
-        print("All sections processed")
+        logger.info("All sections processed")
         return state
 
     current_section = sections[index]
     if not isinstance(current_section, dict):
-        print(f"WARNING: invalid section at index {index}; skipping")
+        logger.warning("Invalid section at index %s; skipping", index)
         state["current_section"] = {}
         state["section_index"] = index + 1
         return state
 
     title = current_section.get("title", f"Section {index + 1}")
 
-    print(f"\nProcessing section {index + 1}/{len(sections)}: {title}")
+    logger.info("Processing section %s/%s: %s", index + 1, len(sections), title)
 
     state["current_section"] = current_section
     state["skip_section"] = False  # always reset

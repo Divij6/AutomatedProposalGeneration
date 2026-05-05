@@ -5,6 +5,19 @@ Converts extracted proposal
 into structured JSON format.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _normalise_row(row: list[str]) -> list[str]:
+    return [str(cell).strip().lower() for cell in row]
+
+
+def _is_empty_row(row: list[str]) -> bool:
+    return all(not str(cell).strip() for cell in row)
+
+
 def build_proposal_json(parsed_doc):
     """
     Convert parsed proposal into JSON structure.
@@ -46,13 +59,19 @@ def build_proposal_json(parsed_doc):
                 rows = [[str(cell) for cell in row] for row in table.rows]
                 headers = [str(header) for header in table.headers]
 
-                if headers:
-                    print("DEBUG proposal table rows length:", len(rows))
-                    print("DEBUG accessing proposal table first row index:", 0)
-                    first_row = [cell.strip().lower() for cell in rows[0]] if rows else []
-                    header_row = [cell.strip().lower() for cell in headers]
-                    if first_row != header_row:
-                        rows = [headers] + rows
+                rows = [row for row in rows if not _is_empty_row(row)]
+
+                if not headers and rows:
+                    headers = rows[0]
+                    rows = rows[1:]
+                    logger.debug("Inferred headers from first row in section: %s", sec.title)
+
+                if headers and rows:
+                    first_row_normalised = _normalise_row(rows[0])
+                    header_normalised = _normalise_row(headers)
+                    if first_row_normalised == header_normalised:
+                        rows = rows[1:]
+                        logger.debug("Removed duplicate header row from table in section: %s", sec.title)
 
                 section_data["tables"].append({
 
@@ -62,7 +81,13 @@ def build_proposal_json(parsed_doc):
 
                     "sample_rows": rows[:2],
 
-                    "row_count": len(rows)
+                    "row_count": len(rows),
+
+                    "source_section_title": sec.title,
+
+                    "source_page_start": sec.page_start,
+
+                    "source_page_end": sec.page_end
 
                 })
 

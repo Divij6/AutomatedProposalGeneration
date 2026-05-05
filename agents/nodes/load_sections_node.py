@@ -8,16 +8,31 @@ Responsibilities:
 4. Preserve raw sections so compile_proposal_node can rebuild the original tables.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _normalise_row(row: list[str]) -> list[str]:
+    return [str(cell).strip().lower() for cell in row]
+
 
 def _table_rows(table: dict) -> list[list[str]]:
     if not isinstance(table, dict):
-        print("WARNING: invalid table object; expected dict")
+        logger.warning("Invalid table object; expected dict")
         return []
     rows = table.get("rows") or table.get("sample_rows") or []
-    return [[str(cell).strip() for cell in row] for row in rows if row]
+    rows = [[str(cell).strip() for cell in row] for row in rows if row]
+    headers = [str(cell).strip() for cell in table.get("headers", []) or []]
+    if headers and (not rows or _normalise_row(rows[0]) != _normalise_row(headers)):
+        rows = [headers] + rows
+    return rows
 
 
-def _find_header_index(rows: list[list[str]]) -> int:
+def _find_header_index(rows: list[list[str]], table: dict | None = None) -> int:
+    if isinstance(table, dict) and isinstance(table.get("header_row_index"), int):
+        return table["header_row_index"]
+
     for idx, row in enumerate(rows[:3]):
         joined = " ".join(str(cell).lower() for cell in row)
         if (
@@ -56,20 +71,31 @@ def _extract_table_items(sections: list) -> list:
             if not rows:
                 continue
 
-            header_idx = _find_header_index(rows)
-            print("DEBUG table rows length:", len(rows))
-            print("DEBUG accessing table header index:", header_idx)
+            header_idx = _find_header_index(rows, table)
+            logger.debug("Table rows length: %s", len(rows))
+            logger.debug("Using table header index: %s", header_idx)
             if header_idx >= len(rows):
-                print(f"WARNING: header index {header_idx} outside rows length {len(rows)}")
+                logger.warning("Header index %s outside rows length %s", header_idx, len(rows))
                 continue
             header = rows[header_idx]
-            required_col = _find_required_col(header, rows)
+            if isinstance(table.get("fill_col_index"), int):
+                required_col = table["fill_col_index"]
+            else:
+                required_col = _find_required_col(header, rows)
+            notes_col_index = table.get("notes_col_index", None)
+            is_synthesised = table.get("is_synthesised") is True
 
             for row_idx, row in enumerate(rows):
-                if row_idx <= header_idx or len(row) <= required_col:
+                if row_idx <= header_idx:
                     continue
 
-                cell_text = str(row[required_col]).strip()
+                cell_text = str(row[required_col]).strip() if len(row) > required_col else ""
+                if not cell_text:
+                    if is_synthesised and row:
+                        cell_text = str(row[0]).strip()
+                    else:
+                        left_cells = [str(cell).strip() for cell in row[:required_col] if str(cell).strip()]
+                        cell_text = left_cells[-1] if left_cells else ""
                 if not cell_text:
                     continue
 
@@ -79,7 +105,10 @@ def _extract_table_items(sections: list) -> list:
                     "tbl_index": tbl_idx,
                     "row_index": row_idx,
                     "required_col": required_col,
+                    "fill_col_index": table.get("fill_col_index"),
                     "header_row_index": header_idx,
+                    "notes_col_index": notes_col_index,
+                    "is_form_field": is_synthesised,
                     "original_row": row,
                 })
 
@@ -97,11 +126,11 @@ def detect_table_mode(sections: list) -> str:
 
 
 def load_sections_node(state: dict) -> dict:
-    print("\nLoading proposal sections...\n")
+    logger.info("Loading proposal sections")
 
     proposal_json = state.get("proposal_json")
     if not proposal_json:
-        print("WARNING: No proposal_json found in state")
+        logger.warning("No proposal_json found in state")
         state["proposal_sections"] = []
         state["raw_sections"] = []
         state["status"] = "no_proposal_json"
@@ -110,7 +139,7 @@ def load_sections_node(state: dict) -> dict:
 
     sections = proposal_json.get("sections", [])
     if not sections:
-        print("WARNING: No sections found inside proposal_json")
+        logger.warning("No sections found inside proposal_json")
         state["proposal_sections"] = []
         state["raw_sections"] = []
         state["status"] = "no_sections"
@@ -120,21 +149,21 @@ def load_sections_node(state: dict) -> dict:
     mode = detect_table_mode(sections)
     state["mode"] = mode
 
-    print(f"Detected mode: {mode}")
+    logger.info("Detected proposal mode: %s", mode)
 
     if mode == "table":
         table_items = _extract_table_items(sections)
 
         if not table_items:
-            print("WARNING: Table mode detected but no rows extracted - falling back to paragraph mode")
+            logger.warning("Table mode detected but no rows extracted - falling back to paragraph mode")
             state["mode"] = "paragraph"
             state["proposal_sections"] = sections
         else:
             state["proposal_sections"] = table_items
-            print(f"Extracted {len(table_items)} table rows to fill")
+            logger.info("Extracted %s table rows to fill", len(table_items))
     else:
         state["proposal_sections"] = sections
-        print(f"Loaded {len(sections)} paragraph sections")
+        logger.info("Loaded %s paragraph sections", len(sections))
 
     state["raw_sections"] = sections
     state["status"] = "sections_loaded"

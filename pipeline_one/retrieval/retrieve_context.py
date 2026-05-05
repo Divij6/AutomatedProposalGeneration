@@ -124,8 +124,11 @@
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
+import logging
 
 from pipeline_one.embedding.cohere_embedder import embed_chunks
+
+logger = logging.getLogger(__name__)
 
 
 def retrieve_section_context(
@@ -150,10 +153,10 @@ def retrieve_section_context(
         [query_chunk],
         api_key=cohere_key
     )
-    print("DEBUG query_vectors length:", len(query_vectors))
-    print("DEBUG accessing query_vectors index:", 0)
+    logger.debug("Query vectors length: %s", len(query_vectors))
+    logger.debug("Accessing query_vectors index: 0")
     if not query_vectors:
-        print("WARNING: query embedding returned no vectors; returning empty context")
+        logger.warning("Query embedding returned no vectors; returning empty context")
         return []
     query_vector = query_vectors[0]
 
@@ -275,8 +278,8 @@ def retrieve_section_context(
                 )
 
                 if neighbor_points:
-                    print("DEBUG neighbor_points length:", len(neighbor_points))
-                    print("DEBUG accessing neighbor_points index:", 0)
+                    logger.debug("Neighbor points length: %s", len(neighbor_points))
+                    logger.debug("Accessing neighbor_points index: 0")
 
                     expanded_chunks.append(
                         neighbor_points[0].payload

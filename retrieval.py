@@ -1,8 +1,13 @@
 from pipeline_one.retrieval.retrieve_context import retrieve_section_context
+import os
 
-COHERE_KEY = "prRZFhvcguOv8Ss4svLYWN8kGCGYypdF5hh3pXZV"
-QDRANT_URL = "https://e1a408b9-18aa-46f7-a3f7-fcfbebb20345.sa-east-1-0.aws.cloud.qdrant.io:6333"
-QDRANT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.mlaWJmy3OGwF-p29vJjWB-3OmJLXkoSPCsvPDw4d1Eo"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+COHERE_KEY = os.getenv("COHERE_KEY")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_KEY = os.getenv("QDRANT_KEY")
 
 
 

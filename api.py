@@ -99,10 +99,10 @@
 # UPLOAD_DIR = Path("uploaded_pdfs")
 # UPLOAD_DIR.mkdir(exist_ok=True)
 #
-# COHERE_KEY = "prRZFhvcguOv8Ss4svLYWN8kGCGYypdF5hh3pXZV"
+# COHERE_KEY = os.getenv("COHERE_KEY")
 #
-# QDRANT_URL = "https://e1a408b9-18aa-46f7-a3f7-fcfbebb20345.sa-east-1-0.aws.cloud.qdrant.io:6333"
-# QDRANT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.mlaWJmy3OGwF-p29vJjWB-3OmJLXkoSPCsvPDw4d1Eo"
+# QDRANT_URL = os.getenv("QDRANT_URL")
+# QDRANT_KEY = os.getenv("QDRANT_KEY")
 #
 #
 # # ── MAIN ENDPOINT ─────────────────────────────────────
@@ -689,16 +689,17 @@ import shutil
 import os
 import uuid
 import tempfile
-import traceback
+import logging
 from pathlib import Path
 from fastapi import UploadFile, File, Form
 
 from pipeline_one.parsing.pipeline import run_parsing_pipeline
 from pipeline_one.chunking.pipeline import run_chunking_pipeline
 from pipeline_one.embedding.pipeline import run_embedding_pipeline
-from pipeline_one.proposal.detector import detect_proposal_sections
+from pipeline_one.proposal.llm_proposal_detector import detect_proposal_formats_with_llm
 from pipeline_one.proposal.extractor import extract_proposal_pdf
 from pipeline_one.proposal.json_builder import build_proposal_json
+from pipeline_one.proposal.llm_format_validator import validate_and_normalise_proposal_json
 from pipeline_one.utils.supabase_client import supabase, upload_file_to_supabase
 
 from agents.graph import build_graph
@@ -708,6 +709,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import bcrypt
+
+logger = logging.getLogger(__name__)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -816,9 +819,10 @@ def build_proposal_json_from_docx(docx_path: str) -> dict:
 UPLOAD_DIR = Path("uploaded_pdfs")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-COHERE_KEY = "prRZFhvcguOv8Ss4svLYWN8kGCGYypdF5hh3pXZV"
-QDRANT_URL = "https://e1a408b9-18aa-46f7-a3f7-fcfbebb20345.sa-east-1-0.aws.cloud.qdrant.io:6333"
-QDRANT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.mlaWJmy3OGwF-p29vJjWB-3OmJLXkoSPCsvPDw4d1Eo"
+COHERE_KEY = os.getenv("COHERE_KEY")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_KEY = os.getenv("QDRANT_KEY")
+SUPABASE_PROPOSAL_BUCKET = os.getenv("SUPABASE_PROPOSAL_BUCKET", "proposal-formats")
 
 app = FastAPI(title="Tender Proposal API")
 
@@ -844,8 +848,8 @@ async def login(email: str = Form(...), password: str = Form(...)):
         response = supabase.table("companies").select("*").eq("contact_email", email).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="User not found")
-        print("DEBUG login response.data length:", len(response.data))
-        print("DEBUG accessing login response.data index:", 0)
+        logger.debug("Login response.data length: %s", len(response.data))
+        logger.debug("Accessing login response.data index: 0")
         company = response.data[0]
         if not verify_password(password, company["password"]):
             raise HTTPException(status_code=401, detail="Invalid password")
@@ -913,7 +917,7 @@ async def onboard_company(
         qdrant_key=QDRANT_KEY,
         collection_name="company_knowledge",
     )
-    print(f"Company knowledge embedded: {len(chunks)} chunks")
+    logger.info("Company knowledge embedded: %s chunks", len(chunks))
 
     return {
         "status": "success",
@@ -945,15 +949,39 @@ async def upload_pdf(company_id: str = Form(...), file: UploadFile = File(...)):
         parsed_doc = run_parsing_pipeline(pdf_path=file_path)
 
         # Detect if tender contains a proposal format/table
-        proposal_sections = detect_proposal_sections(parsed_doc)
+        proposal_sections = detect_proposal_formats_with_llm(parsed_doc)
         proposal_found = bool(proposal_sections)
         proposal_pdf_path = None
+        extracted_pdf_path = None
         proposal_json = None
+        format_count = len(proposal_sections)
+        detected_format_types = [
+            getattr(section, "format_type", "other_fill_format")
+            for section in proposal_sections
+        ]
+        detection_method = (
+            "keyword_fallback"
+            if any(getattr(section, "detection_method", "") == "keyword_fallback" for section in proposal_sections)
+            else "llm"
+        )
+        normalisation_applied = False
 
         if proposal_found:
             proposal_pdf_path = extract_proposal_pdf(file_path, proposal_sections, parsed_doc)
-            parsed_proposal = run_parsing_pipeline(proposal_pdf_path)
-            proposal_json = build_proposal_json(parsed_proposal)
+            if proposal_pdf_path:
+                extracted_pdf_path = upload_file_to_supabase(
+                    proposal_pdf_path,
+                    bucket_name=SUPABASE_PROPOSAL_BUCKET,
+                    folder_name=f"{company_id}/{parsed_doc.doc_id}",
+                )
+                parsed_proposal = run_parsing_pipeline(proposal_pdf_path)
+                raw_proposal_json = build_proposal_json(parsed_proposal)
+                proposal_json = validate_and_normalise_proposal_json(raw_proposal_json)
+                normalisation_applied = proposal_json is not raw_proposal_json
+            else:
+                proposal_found = False
+                format_count = 0
+                detected_format_types = []
 
         # Chunk + embed tender
         chunks = run_chunking_pipeline(parsed_doc)
@@ -977,6 +1005,11 @@ async def upload_pdf(company_id: str = Form(...), file: UploadFile = File(...)):
             "tender_file_url": tender_path,
             "proposal_found": proposal_found,
             "proposal_json": proposal_json,
+            "extracted_pdf_path": extracted_pdf_path,
+            "format_count": format_count,
+            "detected_format_types": detected_format_types,
+            "detection_method": detection_method,
+            "normalisation_applied": normalisation_applied,
         }).execute()
 
         sample_chunks = [
@@ -999,6 +1032,7 @@ async def upload_pdf(company_id: str = Form(...), file: UploadFile = File(...)):
             "duration_seconds": result["duration_seconds"],
             "proposal_found": proposal_found,
             "proposal_pdf_path": str(proposal_pdf_path) if proposal_pdf_path else None,
+            "extracted_pdf_path": extracted_pdf_path,
             "proposal_json": proposal_json,
         }
 
@@ -1017,15 +1051,15 @@ async def generate_proposal(
     format_source: str = Form(default="tender"),
 ):
     try:
-        print(f"\nStarting proposal generation | format_source={format_source}\n")
+        logger.info("Starting proposal generation | format_source=%s", format_source)
 
         # ── Fetch tender row ───────────────────────────────────────
         tender_response = supabase.table("tenders").select("*").eq("doc_id", doc_id).execute()
         if not tender_response.data:
             raise HTTPException(status_code=404, detail="Tender not found")
 
-        print("DEBUG tender_response.data length:", len(tender_response.data))
-        print("DEBUG accessing tender_response.data index:", 0)
+        logger.debug("Tender response.data length: %s", len(tender_response.data))
+        logger.debug("Accessing tender_response.data index: 0")
         tender_row = tender_response.data[0]
 
         # ── Determine proposal_json based on format_source ─────────
@@ -1044,11 +1078,11 @@ async def generate_proposal(
                         "Please use format_source='template' to use your onboarded template instead."
                     ),
                 )
-            print("Using proposal format from tender document")
+            logger.info("Using proposal format from tender document")
 
         else:
             # format_source == "template" — use company onboarded template
-            print("Using company onboarded template")
+            logger.info("Using company onboarded template")
 
             company_response = supabase.table("companies").select(
                 "proposal_template_url"
@@ -1057,8 +1091,8 @@ async def generate_proposal(
             if not company_response.data:
                 raise HTTPException(status_code=404, detail="Company not found")
 
-            print("DEBUG company_response.data length:", len(company_response.data))
-            print("DEBUG accessing company_response.data index:", 0)
+            logger.debug("Company response.data length: %s", len(company_response.data))
+            logger.debug("Accessing company_response.data index: 0")
             template_url = company_response.data[0].get("proposal_template_url")
             if not template_url:
                 raise HTTPException(status_code=400, detail="Company proposal template URL is missing")
@@ -1075,7 +1109,7 @@ async def generate_proposal(
             # PDF conversion destroys table structure!
             if temp_template_path.endswith(".docx"):
                 proposal_json = build_proposal_json_from_docx(temp_template_path)
-                print(f"Parsed DOCX template: {len(proposal_json.get('sections', []))} sections")
+                logger.info("Parsed DOCX template: %s sections", len(proposal_json.get("sections", [])))
 
             else:
                 # It's a PDF template — use existing pipeline
@@ -1086,7 +1120,7 @@ async def generate_proposal(
             raise HTTPException(status_code=500, detail="Failed to build proposal_json")
 
         # ── Run LangGraph ──────────────────────────────────────────
-        print("\nRunning LangGraph...\n")
+        logger.info("Running LangGraph")
 
         graph = build_graph()
 
@@ -1109,14 +1143,14 @@ async def generate_proposal(
 
         result = graph.invoke(initial_state)
 
-        print("\nGraph execution complete\n")
+        logger.info("Graph execution complete")
 
         output_file = result.get("output_file")
 
         if not output_file or not os.path.exists(output_file):
             raise HTTPException(status_code=500, detail="Output file missing or not generated")
 
-        print(f"Returning file: {output_file}")
+        logger.info("Returning file: %s", output_file)
 
         return FileResponse(
             path=output_file,
@@ -1127,7 +1161,7 @@ async def generate_proposal(
     except HTTPException:
         raise
     except Exception as e:
-        traceback.print_exc()
+        logger.exception("Proposal generation failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1149,8 +1183,8 @@ async def check_proposal_format(doc_id: str):
         if not response.data:
             raise HTTPException(status_code=404, detail="Tender not found")
 
-        print("DEBUG check_proposal_format response.data length:", len(response.data))
-        print("DEBUG accessing check_proposal_format response.data index:", 0)
+        logger.debug("check_proposal_format response.data length: %s", len(response.data))
+        logger.debug("Accessing check_proposal_format response.data index: 0")
         row = response.data[0]
         return {
             "doc_id": doc_id,

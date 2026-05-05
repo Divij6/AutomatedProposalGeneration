@@ -158,6 +158,8 @@ Changes vs old version:
 - format_source is threaded through initial_state (set by api.py before invoking).
 """
 
+import logging
+
 from langgraph.graph import StateGraph, END
 
 from agents.state import ProposalState
@@ -167,6 +169,8 @@ from agents.nodes.validate_section_node import validate_section_node
 from agents.nodes.generate_section_node import generate_section_node
 from agents.nodes.check_next_section_node import check_next_section_node
 from agents.nodes.compile_proposal_node import compile_proposal_node
+
+logger = logging.getLogger(__name__)
 
 
 def route_after_validation(state: dict) -> str:
@@ -178,8 +182,8 @@ def route_after_validation(state: dict) -> str:
 def route_after_process(state: dict) -> str:
     sections = state.get("proposal_sections") or []
     index = state.get("section_index", 0)
-    print("DEBUG route_after_process sections length:", len(sections))
-    print("DEBUG route_after_process accessing index:", index)
+    logger.debug("route_after_process sections length: %s", len(sections))
+    logger.debug("route_after_process accessing index: %s", index)
     if index >= len(sections):
         return "compile"
     if not state.get("current_section"):
@@ -195,8 +199,8 @@ def route_after_generation(state: dict) -> str:
     sections = state.get("proposal_sections") or []
     index = state.get("section_index", 0)
     total = len(sections)
-    print("DEBUG route_after_generation sections length:", total)
-    print("DEBUG route_after_generation next index:", index)
+    logger.debug("route_after_generation sections length: %s", total)
+    logger.debug("route_after_generation next index: %s", index)
 
     if index < total:
         return "process"

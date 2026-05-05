@@ -1,11 +1,15 @@
 from pipeline_one.parsing.pipeline   import run_parsing_pipeline
 from pipeline_one.chunking.pipeline  import run_chunking_pipeline
 from pipeline_one.embedding.pipeline import run_embedding_pipeline
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PDF_PATH   = r"D:\Third Year\Projects\DataExtraction\documents\6565dbb36c16dTenderdoc144.pdf"
-COHERE_KEY = "prRZFhvcguOv8Ss4svLYWN8kGCGYypdF5hh3pXZV"
-QDRANT_URL = "https://e1a408b9-18aa-46f7-a3f7-fcfbebb20345.sa-east-1-0.aws.cloud.qdrant.io:6333"
-QDRANT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.mlaWJmy3OGwF-p29vJjWB-3OmJLXkoSPCsvPDw4d1Eo"
+COHERE_KEY = os.getenv("COHERE_KEY")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_KEY = os.getenv("QDRANT_KEY")
 
 # ── Run all 3 phases ──────────────────────────────────────────────────────────
 parsed_doc = run_parsing_pipeline(PDF_PATH)

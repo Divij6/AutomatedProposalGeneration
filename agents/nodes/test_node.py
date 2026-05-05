@@ -1,7 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def test_node(state):
-
-    print("\nLangGraph test node running\n")
-
-    state["status"] = "graph_working"
-
+    logger.info("LangGraph test node running")
     return state

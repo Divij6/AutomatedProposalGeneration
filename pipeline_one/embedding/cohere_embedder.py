@@ -120,8 +120,8 @@ def embed_chunks(
         logger.warning("Embedding completed with zero vectors")
         return []
 
-    logger.info("DEBUG all_vectors length: %s", len(all_vectors))
-    logger.info("DEBUG accessing all_vectors index: 0")
+    logger.debug("all_vectors length: %s", len(all_vectors))
+    logger.debug("Accessing all_vectors index: 0")
 
     logger.info(
         f"Embedding complete — "
@@ -169,8 +169,8 @@ def embed_query(
         )
 
         vectors = response.embeddings.float
-        logger.info("DEBUG query embedding vectors length: %s", len(vectors))
-        logger.info("DEBUG accessing query embedding vectors index: 0")
+        logger.debug("Query embedding vectors length: %s", len(vectors))
+        logger.debug("Accessing query embedding vectors index: 0")
         if not vectors:
             raise RuntimeError("Query embedding returned no vectors")
         return vectors[0]

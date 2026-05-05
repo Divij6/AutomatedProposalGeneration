@@ -129,7 +129,11 @@ Fix vs old version:
 - In paragraph mode, keep existing logic but tighten the prompt.
 """
 
+import logging
+
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 client = OpenAI(
     base_url="http://localhost:11434/v1",
@@ -146,16 +150,16 @@ def _call_llm(prompt: str, max_tokens: int = 5, temperature: float = 0) -> str:
         max_tokens=max_tokens,
     )
     choices = getattr(response, "choices", None) or []
-    print("DEBUG validate LLM choices length:", len(choices))
-    print("DEBUG validate LLM accessing choices index:", 0)
+    logger.debug("Validate LLM choices length: %s", len(choices))
+    logger.debug("Validate LLM accessing choices index: 0")
     if not choices:
-        print("WARNING: validate LLM returned no choices")
+        logger.warning("Validate LLM returned no choices")
         return ""
 
     message = getattr(choices[0], "message", None)
     content = getattr(message, "content", "") if message else ""
     if not content:
-        print("WARNING: validate LLM returned empty content")
+        logger.warning("Validate LLM returned empty content")
     return content or ""
 
 
@@ -182,24 +186,24 @@ def validate_section_node(state: dict) -> dict:
 
     if not title:
         index = state.get("section_index", 0)
-        print("WARNING: current_section is missing a title; skipping section")
-        print("DEBUG current_section:", section)
-        print("DEBUG section_index:", index)
+        logger.warning("Current section is missing a title; skipping section")
+        logger.debug("Current section: %s", section)
+        logger.debug("Section index: %s", index)
         state["skip_section"] = True
         state["section_index"] = index + 1
         return state
 
-    print(f"  [VALIDATE] {title}")
+    logger.info("[VALIDATE] %s", title)
 
     # ── TABLE MODE: only skip empty/header rows ───────────────────
     if mode == "table":
         if _is_empty_or_header_row(title):
             state["skip_section"] = True
             state["section_index"] += 1
-            print(f"  → SKIP (empty/header row)")
+            logger.info("Validation result: SKIP (empty/header row)")
         else:
             state["skip_section"] = False
-            print(f"  → GENERATE")
+            logger.info("Validation result: GENERATE")
         return state
 
     # ── PARAGRAPH MODE: use LLM to decide ────────────────────────
@@ -222,14 +226,14 @@ SKIP      ← if this is administrative/structural with no content needed"""
         .replace(".", "")
     )
     decision_tokens = raw_decision.split()
-    print("DEBUG validation decision token count:", len(decision_tokens))
-    print("DEBUG validation decision accessing index:", 0)
+    logger.debug("Validation decision token count: %s", len(decision_tokens))
+    logger.debug("Validation decision accessing index: 0")
     decision = decision_tokens[0] if decision_tokens else "GENERATE"
 
     if not decision_tokens:
-        print("WARNING: empty validation decision; defaulting to GENERATE")
+        logger.warning("Empty validation decision; defaulting to GENERATE")
 
-    print(f"  → {decision}")
+    logger.info("Validation result: %s", decision)
 
     if "SKIP" in decision:
         state["skip_section"] = True
