@@ -31,6 +31,9 @@ def _style_header_row(row):
 
 
 def _table_rows(table: dict) -> list[list[str]]:
+    if not isinstance(table, dict):
+        print("WARNING: invalid table object in compile; expected dict")
+        return []
     rows = table.get("rows") or table.get("sample_rows") or []
     return [[str(cell).strip() for cell in row] for row in rows if row]
 
@@ -85,7 +88,7 @@ def _find_notes_col(header: list[str], offered_col: int, num_cols: int) -> int |
 def compile_proposal_node(state: dict) -> dict:
     print("\nCompiling proposal document...\n")
 
-    generated_sections = state["generated_sections"]
+    generated_sections = state.get("generated_sections") or []
     mode = state.get("mode", "paragraph")
     proposal_json = state.get("proposal_json", {})
     raw_sections = state.get("raw_sections", proposal_json.get("sections", []))
@@ -118,6 +121,11 @@ def compile_proposal_node(state: dict) -> dict:
 
                 num_cols = max(len(row) for row in rows)
                 header_idx = _find_header_index(rows)
+                print("DEBUG compile table rows length:", len(rows))
+                print("DEBUG compile accessing header index:", header_idx)
+                if header_idx >= len(rows):
+                    print(f"WARNING: compile header index {header_idx} outside rows length {len(rows)}")
+                    header_idx = 0
                 header = rows[header_idx]
                 required_col = _find_required_col(header, rows)
                 offered_col = _find_offered_col(header, required_col, num_cols)
@@ -152,9 +160,13 @@ def compile_proposal_node(state: dict) -> dict:
                 doc.add_paragraph("")
 
     else:
+        if not generated_sections:
+            print("WARNING: No generated sections available; writing fallback paragraph")
+            doc.add_paragraph("No proposal sections were generated.")
+
         for section in generated_sections:
-            title = section["title"]
-            content = section["content"]
+            title = section.get("title") or "Untitled section"
+            content = section.get("content") or "Details available on request."
 
             doc.add_heading(title, level=2)
             for para in content.split("\n"):

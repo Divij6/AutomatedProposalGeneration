@@ -176,8 +176,14 @@ def route_after_validation(state: dict) -> str:
 
 
 def route_after_process(state: dict) -> str:
-    if state["section_index"] >= len(state["proposal_sections"]):
+    sections = state.get("proposal_sections") or []
+    index = state.get("section_index", 0)
+    print("DEBUG route_after_process sections length:", len(sections))
+    print("DEBUG route_after_process accessing index:", index)
+    if index >= len(sections):
         return "compile"
+    if not state.get("current_section"):
+        return "process"
     return "validate"
 
 
@@ -186,8 +192,11 @@ def route_after_generation(state: dict) -> str:
     Called after generate_section_node.
     Checks if there are more sections to process.
     """
-    index = state["section_index"]
-    total = len(state["proposal_sections"])
+    sections = state.get("proposal_sections") or []
+    index = state.get("section_index", 0)
+    total = len(sections)
+    print("DEBUG route_after_generation sections length:", total)
+    print("DEBUG route_after_generation next index:", index)
 
     if index < total:
         return "process"

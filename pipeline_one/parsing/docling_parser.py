@@ -56,6 +56,8 @@ def _table_to_markdown(headers: list[str], rows: list[list[str]]) -> str:
 
     # If no headers provided, use column indices as headers
     if not headers and rows:
+        print("DEBUG markdown table rows length:", len(rows))
+        print("DEBUG accessing markdown table first row index:", 0)
         headers = [f"Col {i+1}" for i in range(len(rows[0]))]
 
     # Build header row
@@ -347,6 +349,8 @@ def _extract_sections_from_docling(docling_doc) -> tuple[list[dict], list[dict]]
                 if table_data and hasattr(table_data, "grid"):
                     grid = table_data.grid
                     if grid:
+                        print("DEBUG docling table grid length:", len(grid))
+                        print("DEBUG accessing docling table grid index:", 0)
                         first_row = [cell.text.strip() for cell in grid[0]]
                         looks_like_header = all(
                             len(c) < 60 and not re.match(r"^\d+[\.,]?\d*$", c)

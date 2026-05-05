@@ -3,10 +3,16 @@
 React + Vite frontend for the proposal generation workflow.
 
 ## Configure API URL
-Edit `frontend/.env` whenever ngrok changes:
+Edit `frontend/.env` whenever ngrok changes. Normal API calls use:
 
 ```env
-VITE_BACKEND_BASE_URL=https://your-new-ngrok-url.ngrok-free.app
+VITE_BACKEND_BASE_URL=http://localhost:8000
+```
+
+Only the Generate Proposal button can be routed to a separate laptop/API by setting:
+
+```env
+VITE_GENERATE_PROPOSAL_BASE_URL=https://your-friends-ngrok-url.ngrok-free.app
 ```
 
 The app reads these endpoint paths from `.env`:

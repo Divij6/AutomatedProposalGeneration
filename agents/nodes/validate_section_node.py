@@ -145,7 +145,18 @@ def _call_llm(prompt: str, max_tokens: int = 5, temperature: float = 0) -> str:
         temperature=temperature,
         max_tokens=max_tokens,
     )
-    return response.choices[0].message.content
+    choices = getattr(response, "choices", None) or []
+    print("DEBUG validate LLM choices length:", len(choices))
+    print("DEBUG validate LLM accessing choices index:", 0)
+    if not choices:
+        print("WARNING: validate LLM returned no choices")
+        return ""
+
+    message = getattr(choices[0], "message", None)
+    content = getattr(message, "content", "") if message else ""
+    if not content:
+        print("WARNING: validate LLM returned empty content")
+    return content or ""
 
 
 def _is_empty_or_header_row(title: str) -> bool:
@@ -165,9 +176,18 @@ def _is_empty_or_header_row(title: str) -> bool:
 
 
 def validate_section_node(state: dict) -> dict:
-    section = state["current_section"]
-    title = section["title"]
+    section = state.get("current_section") or {}
+    title = section.get("title", "").strip()
     mode = state.get("mode", "paragraph")
+
+    if not title:
+        index = state.get("section_index", 0)
+        print("WARNING: current_section is missing a title; skipping section")
+        print("DEBUG current_section:", section)
+        print("DEBUG section_index:", index)
+        state["skip_section"] = True
+        state["section_index"] = index + 1
+        return state
 
     print(f"  [VALIDATE] {title}")
 
@@ -195,13 +215,19 @@ Reply with exactly one word:
 GENERATE  ← if this section needs written proposal content
 SKIP      ← if this is administrative/structural with no content needed"""
 
-    decision = (
+    raw_decision = (
         _call_llm(prompt=prompt, max_tokens=5, temperature=0)
         .strip()
         .upper()
         .replace(".", "")
-        .split()[0]  # take only first word
     )
+    decision_tokens = raw_decision.split()
+    print("DEBUG validation decision token count:", len(decision_tokens))
+    print("DEBUG validation decision accessing index:", 0)
+    decision = decision_tokens[0] if decision_tokens else "GENERATE"
+
+    if not decision_tokens:
+        print("WARNING: empty validation decision; defaulting to GENERATE")
 
     print(f"  → {decision}")
 

@@ -2,6 +2,7 @@ const env = import.meta.env;
 
 export const config = {
   backendBaseUrl: trimTrailingSlash(env.VITE_BACKEND_BASE_URL || ''),
+  generateProposalBaseUrl: trimTrailingSlash(env.VITE_GENERATE_PROPOSAL_BASE_URL || env.VITE_BACKEND_BASE_URL || ''),
   endpoints: {
     login: env.VITE_LOGIN_ENDPOINT || '/login',
     onboardCompany: env.VITE_ONBOARD_COMPANY_ENDPOINT || '/onboard-company',
@@ -15,12 +16,20 @@ function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/, '');
 }
 
-function buildUrl(endpoint) {
-  if (!config.backendBaseUrl) {
+function isAbsoluteUrl(value) {
+  return /^https?:\/\//i.test(String(value || ''));
+}
+
+function buildUrl(endpoint, baseUrl = config.backendBaseUrl) {
+  if (isAbsoluteUrl(endpoint)) {
+    return endpoint;
+  }
+
+  if (!baseUrl) {
     throw new Error('Backend base URL is missing. Update frontend/.env.');
   }
 
-  return `${config.backendBaseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  return `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 }
 
 async function readResponse(response) {
@@ -107,7 +116,10 @@ export async function generateProposal({ companyId, docId, formatSource }) {
   formData.append('doc_id', docId);
   formData.append('format_source', formatSource === 'tender' ? 'tender' : 'template');
 
-  const response = await fetch(buildUrl(config.endpoints.generateProposal), {
+  const response = await fetch(buildUrl(
+    config.endpoints.generateProposal,
+    config.generateProposalBaseUrl,
+  ), {
     method: 'POST',
     body: formData,
   });

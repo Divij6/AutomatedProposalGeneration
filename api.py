@@ -689,6 +689,7 @@ import shutil
 import os
 import uuid
 import tempfile
+import traceback
 from pathlib import Path
 from fastapi import UploadFile, File, Form
 
@@ -843,6 +844,8 @@ async def login(email: str = Form(...), password: str = Form(...)):
         response = supabase.table("companies").select("*").eq("contact_email", email).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="User not found")
+        print("DEBUG login response.data length:", len(response.data))
+        print("DEBUG accessing login response.data index:", 0)
         company = response.data[0]
         if not verify_password(password, company["password"]):
             raise HTTPException(status_code=401, detail="Invalid password")
@@ -1021,6 +1024,8 @@ async def generate_proposal(
         if not tender_response.data:
             raise HTTPException(status_code=404, detail="Tender not found")
 
+        print("DEBUG tender_response.data length:", len(tender_response.data))
+        print("DEBUG accessing tender_response.data index:", 0)
         tender_row = tender_response.data[0]
 
         # ── Determine proposal_json based on format_source ─────────
@@ -1052,7 +1057,11 @@ async def generate_proposal(
             if not company_response.data:
                 raise HTTPException(status_code=404, detail="Company not found")
 
-            template_url = company_response.data[0]["proposal_template_url"]
+            print("DEBUG company_response.data length:", len(company_response.data))
+            print("DEBUG accessing company_response.data index:", 0)
+            template_url = company_response.data[0].get("proposal_template_url")
+            if not template_url:
+                raise HTTPException(status_code=400, detail="Company proposal template URL is missing")
 
             # Download template bytes
             template_bytes = supabase.storage.from_("company-documents").download(template_url)
@@ -1118,6 +1127,7 @@ async def generate_proposal(
     except HTTPException:
         raise
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1139,6 +1149,8 @@ async def check_proposal_format(doc_id: str):
         if not response.data:
             raise HTTPException(status_code=404, detail="Tender not found")
 
+        print("DEBUG check_proposal_format response.data length:", len(response.data))
+        print("DEBUG accessing check_proposal_format response.data index:", 0)
         row = response.data[0]
         return {
             "doc_id": doc_id,

@@ -47,6 +47,8 @@ def build_proposal_json(parsed_doc):
                 headers = [str(header) for header in table.headers]
 
                 if headers:
+                    print("DEBUG proposal table rows length:", len(rows))
+                    print("DEBUG accessing proposal table first row index:", 0)
                     first_row = [cell.strip().lower() for cell in rows[0]] if rows else []
                     header_row = [cell.strip().lower() for cell in headers]
                     if first_row != header_row:

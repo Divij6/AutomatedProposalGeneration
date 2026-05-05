@@ -269,12 +269,17 @@ Create a frontend `.env` file inside `frontend/`:
 
 ```env
 VITE_BACKEND_BASE_URL=http://localhost:8000
+VITE_GENERATE_PROPOSAL_BASE_URL=
 VITE_LOGIN_ENDPOINT=/login
 VITE_ONBOARD_COMPANY_ENDPOINT=/onboard-company
 VITE_UPLOAD_PDF_ENDPOINT=/upload-pdf
 VITE_GENERATE_PROPOSAL_ENDPOINT=/generate-proposal
 VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT=/check-proposal-format
 ```
+
+Set `VITE_GENERATE_PROPOSAL_BASE_URL` to a friend's ngrok URL when only
+`POST /generate-proposal` should run on that machine. Leave it blank to use
+`VITE_BACKEND_BASE_URL` for every API call.
 
 Optional frontend Supabase values can be configured only if a public anon key and proper Row Level Security policies are available:
 

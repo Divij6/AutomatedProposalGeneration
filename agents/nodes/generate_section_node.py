@@ -137,13 +137,32 @@ def _call_llm(prompt: str, max_tokens: int = 300, temperature: float = 0.1) -> s
         temperature=temperature,
         max_tokens=max_tokens,
     )
-    return response.choices[0].message.content
+    choices = getattr(response, "choices", None) or []
+    print("DEBUG generate LLM choices length:", len(choices))
+    print("DEBUG generate LLM accessing choices index:", 0)
+    if not choices:
+        print("WARNING: generate LLM returned no choices")
+        return ""
+
+    message = getattr(choices[0], "message", None)
+    content = getattr(message, "content", "") if message else ""
+    if not content:
+        print("WARNING: generate LLM returned empty content")
+    return content or ""
 
 
 def generate_section_node(state: dict) -> dict:
-    section = state["current_section"]
-    title = section["title"]
+    section = state.get("current_section") or {}
+    title = section.get("title", "").strip()
     mode = state.get("mode", "paragraph")
+
+    if not title:
+        index = state.get("section_index", 0)
+        print("WARNING: current_section is missing a title in generate node; skipping")
+        print("DEBUG current_section:", section)
+        print("DEBUG section_index:", index)
+        state["section_index"] = index + 1
+        return state
 
     if state.get("skip_section"):
         print(f"  [SKIP] {title}")
@@ -152,15 +171,19 @@ def generate_section_node(state: dict) -> dict:
 
     print(f"\n  [GENERATE] {title}\n")
 
-    context_items = retrieve_section_context(
-        section_title=title,
-        company_id=state["company_id"],
-        cohere_key=COHERE_KEY,
-        qdrant_url=QDRANT_URL,
-        qdrant_key=QDRANT_KEY,
-        top_k=5,
-        doc_id=state.get("doc_id"),
-    )
+    try:
+        context_items = retrieve_section_context(
+            section_title=title,
+            company_id=state["company_id"],
+            cohere_key=COHERE_KEY,
+            qdrant_url=QDRANT_URL,
+            qdrant_key=QDRANT_KEY,
+            top_k=5,
+            doc_id=state.get("doc_id"),
+        )
+    except Exception as e:
+        print(f"WARNING: context retrieval failed for section '{title}': {e}")
+        context_items = []
     state["context"] = context_items
 
     context_text = "\n\n".join(str(item.get("text", "")) for item in context_items)
@@ -257,6 +280,8 @@ INSTRUCTIONS:
 Content:"""
 
         generated_text = _call_llm(prompt=prompt, max_tokens=400, temperature=0.1)
+        if not generated_text.strip():
+            generated_text = "Details available on request."
 
     generated_text = _strip_markdown(generated_text)
     notes_text = _strip_markdown(notes_text)

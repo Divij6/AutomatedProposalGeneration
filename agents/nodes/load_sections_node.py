@@ -10,6 +10,9 @@ Responsibilities:
 
 
 def _table_rows(table: dict) -> list[list[str]]:
+    if not isinstance(table, dict):
+        print("WARNING: invalid table object; expected dict")
+        return []
     rows = table.get("rows") or table.get("sample_rows") or []
     return [[str(cell).strip() for cell in row] for row in rows if row]
 
@@ -54,6 +57,11 @@ def _extract_table_items(sections: list) -> list:
                 continue
 
             header_idx = _find_header_index(rows)
+            print("DEBUG table rows length:", len(rows))
+            print("DEBUG accessing table header index:", header_idx)
+            if header_idx >= len(rows):
+                print(f"WARNING: header index {header_idx} outside rows length {len(rows)}")
+                continue
             header = rows[header_idx]
             required_col = _find_required_col(header, rows)
 
@@ -93,11 +101,21 @@ def load_sections_node(state: dict) -> dict:
 
     proposal_json = state.get("proposal_json")
     if not proposal_json:
-        raise ValueError("No proposal_json found in state")
+        print("WARNING: No proposal_json found in state")
+        state["proposal_sections"] = []
+        state["raw_sections"] = []
+        state["status"] = "no_proposal_json"
+        state["section_index"] = 0
+        return state
 
     sections = proposal_json.get("sections", [])
     if not sections:
-        raise ValueError("No sections found inside proposal_json")
+        print("WARNING: No sections found inside proposal_json")
+        state["proposal_sections"] = []
+        state["raw_sections"] = []
+        state["status"] = "no_sections"
+        state["section_index"] = 0
+        return state
 
     mode = detect_table_mode(sections)
     state["mode"] = mode
