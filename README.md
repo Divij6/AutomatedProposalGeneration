@@ -1,35 +1,74 @@
-# DataSmith AI - Tender Proposal Automation
+# DataSmith AI - Tender Proposal Automation and Procurement Orchestration
 
-DataSmith AI is a full-stack document intelligence system that helps companies process tender documents, extract proposal formats, retrieve relevant company knowledge, and generate structured tender proposal drafts. The project combines a FastAPI backend, a React frontend, Supabase storage/database, Qdrant vector search, Cohere embeddings, and a LangGraph-based proposal generation workflow.
+DataSmith AI is a full-stack tender intelligence platform that parses tender documents, detects bidder-response formats, retrieves company knowledge, generates structured proposal drafts, and now continues the workflow into active procurement orchestration.
 
-## Problem Statement
+After proposal generation, the system can automatically derive supplier-facing requirements from tender sections and BOQ rows, send real RFQ emails to matched vendors, create pending quote records in Supabase, score proposal compliance using Cohere rerank semantic similarity, identify reusable knowledge from Qdrant, and persist orchestration runs in Supabase.
 
-Tender response preparation is usually slow, repetitive, and error-prone. Teams need to read long PDF tender documents, identify technical and financial proposal formats, compare requirements against company knowledge, fill tables, and produce a submission-ready document. This becomes harder when tenders contain complex tables, annexures, BOQs, multiple sections, or mixed document formats.
+## Overview
 
-This project solves that problem by building an automated tender proposal assistant that can:
+The platform is designed to reduce the manual effort involved in responding to tenders that include:
 
-- Onboard a company with its knowledge base and proposal template.
-- Upload and parse tender PDF documents.
-- Detect whether a tender contains its own proposal response format.
-- Extract, chunk, embed, and store tender content for semantic retrieval.
-- Retrieve relevant tender and company context for each proposal section.
-- Generate a proposal document in DOCX format.
-- Let the frontend guide users through onboarding, upload, processing, review, and export.
+- Long RFPs and technical specifications
+- Annexures and bidder-fillable forms
+- BOQ and commercial schedules
+- Multi-section compliance tables
+- Repetitive proposal drafting across similar tenders
 
-## Solution Overview
+Core capabilities:
 
-The system works as a pipeline:
+- Company onboarding with knowledge base and proposal template upload
+- Tender upload, parsing, section extraction, and proposal format detection
+- Chunking, embedding, and retrieval over tender content and company knowledge
+- LangGraph-based proposal generation in paragraph mode and table mode
+- Active procurement orchestration after proposal generation
+- Semantic compliance scoring before submission using Cohere rerank
+- Similar tender reuse intelligence from Qdrant company knowledge matches
+- Deadline-aware reminders and escalations
+- React frontend workflow for onboarding, upload, processing, review, and export
 
-1. A company registers or logs in through the frontend.
-2. The company uploads its knowledge base and proposal template during onboarding.
-3. The backend stores files in Supabase and embeds company knowledge into Qdrant.
-4. The user uploads a tender PDF.
-5. The backend parses the PDF, extracts sections and tables, detects proposal formats, chunks the tender, and stores embeddings.
-6. The frontend checks whether the uploaded tender has a built-in proposal format.
-7. The user generates a proposal using either the tender format or the onboarded company template.
-8. A LangGraph workflow retrieves relevant context, generates section content, validates output, and compiles a downloadable DOCX proposal.
+## Solution Flow
 
-## Tech Stack
+1. A company user signs in or onboards through the frontend.
+2. The system stores company metadata, the knowledge base, and the proposal template.
+3. The knowledge base is parsed, chunked, embedded, and stored for retrieval.
+4. A tender PDF is uploaded and parsed.
+5. The backend detects whether the tender contains its own proposal response format.
+6. The user generates a proposal using either the tender format or the onboarded company template.
+7. LangGraph generates the proposal draft and compiles the final DOCX.
+8. The procurement orchestration engine triggers automatically.
+9. Vendor RFQs, compliance scores, reuse candidates, and deadline reminders become available for review.
+
+## Visuals
+
+### User Flow
+
+![User Flow](images/Userflow.png)
+
+### System Architecture
+
+![System Architecture](images/Sys_Arch.png)
+
+### UML Diagram
+
+![UML Diagram](images/UML.png)
+
+### Proposed Framework / Methodology
+
+![Proposed Framework](<images/Proposed Framework.png>)
+
+### LangGraph Workflow
+
+![LangGraph Workflow](<images/LangGraph Workflow Diagram.png>)
+
+### Procurement Orchestration Flow
+
+![Procurement Orchestration Flow](<images/Procurement Orchestration Flow.png>)
+
+### Compliance Scoring Pipeline
+
+![Compliance Scoring Pipeline](images/Compliance.png)
+
+## Technology Stack
 
 ### Frontend
 
@@ -37,219 +76,296 @@ The system works as a pipeline:
 - Vite
 - JavaScript
 - CSS
-- Browser localStorage for workflow state
-- Fetch API for backend communication
+- Browser `localStorage`
+- Fetch API
 
 ### Backend
 
 - Python
 - FastAPI
 - Uvicorn
-- python-multipart for file upload forms
-- bcrypt for password hashing
-- python-docx for DOCX parsing and generation
-- ReportLab for basic DOCX to PDF conversion
-- PyMuPDF for PDF extraction
-- Docling for document parsing
-- LangGraph for proposal generation flow
-- OpenAI-compatible client pointed at local Ollama
+- LangGraph
+- bcrypt
+- python-docx
+- ReportLab
+- PyMuPDF
+- Docling
 
-### Storage, Retrieval, and AI Services
+### AI and Retrieval
 
-- Supabase database and object storage
+- Groq
+- Ollama via OpenAI-compatible API
+- Cohere embeddings
 - Qdrant vector database
-- Cohere multilingual embeddings
-- Ollama local LLM endpoint for generation
 
-## Project Structure
+### Storage
+
+- Supabase database
+- Supabase object storage
+
+## Current Repository Structure
+
+The README below reflects the current repository layout, not the older classroom-era structure.
 
 ```text
-DataExtraction/
+AutomatedProposalGeneration/
 |-- api.py
 |-- config.py
 |-- graph.py
 |-- retrieval.py
-|-- documents/
-|-- uploaded_pdfs/
-|-- extracted_proposals/
-|-- generated_proposal.docx
+|-- requirements.txt
+|-- README.md
+|-- DIAGRAM_PROMPTS.md
+|-- .env.example
+|-- supabase_tender_metadata_migration.sql
+|-- deployment/
+|   |-- backend.Dockerfile
+|   |-- frontend.Dockerfile
+|   |-- docker-compose.yml
+|   |-- nginx.conf
+|   |-- .env.example
+|   |-- README.md
+|-- images/
+|   |-- Userflow.png
+|   |-- Sys_Arch.png
+|   |-- UML.png
+|   |-- Proposed Framework.png
+|   |-- LangGraph Workflow Diagram.png
+|   |-- Procurement Orchestration Flow.png
+|   |-- Compliance.png
 |-- agents/
+|   |-- __init__.py
 |   |-- graph.py
 |   |-- state.py
 |   |-- nodes/
+|       |-- __init__.py
 |       |-- load_sections_node.py
 |       |-- process_section_node.py
 |       |-- validate_section_node.py
 |       |-- generate_section_node.py
 |       |-- check_next_section_node.py
 |       |-- compile_proposal_node.py
+|       |-- test_node.py
 |-- pipeline_one/
+|   |-- __init__.py
+|   |-- parsing.py
+|   |-- chunking.py
+|   |-- embedding.py
 |   |-- parsing/
+|   |   |-- __init__.py
+|   |   |-- pipeline.py
+|   |   |-- docling_parser.py
+|   |   |-- normaliser.py
+|   |   |-- models/
+|   |       |-- __init__.py
+|   |       |-- parsed_document.py
 |   |-- chunking/
+|   |   |-- __init__.py
+|   |   |-- pipeline.py
+|   |   |-- chunker.py
+|   |   |-- section_walker.py
+|   |   |-- metadata_builder.py
+|   |   |-- language_detector.py
+|   |   |-- models/
+|   |       |-- __init__.py
+|   |       |-- chunk_model.py
 |   |-- embedding/
+|   |   |-- __init__.py
+|   |   |-- pipeline.py
+|   |   |-- cohere_embedder.py
+|   |   |-- qdrant_store.py
 |   |-- retrieval/
+|   |   |-- __init__.py
+|   |   |-- retrieve_context.py
 |   |-- proposal/
-|   |-- utils/
+|       |-- __init__.py
+|       |-- detector.py
+|       |-- extractor.py
+|       |-- json_builder.py
+|       |-- llm_proposal_detector.py
+|       |-- llm_format_validator.py
+|-- procurement_orchestration/
+|   |-- __init__.py
+|   |-- engine.py
 |-- frontend/
 |   |-- index.html
 |   |-- package.json
+|   |-- package-lock.json
+|   |-- .env.example
+|   |-- README.md
 |   |-- src/
 |   |   |-- main.jsx
 |   |   |-- api.js
 |   |   |-- styles.css
 |   |-- legacy-static/
-|   |-- dist/
+|       |-- app.js
+|       |-- dashboard.html
+|       |-- export.html
+|       |-- footer.html
+|       |-- login.html
+|       |-- main.html
+|       |-- navigation.html
+|       |-- processing.html
+|       |-- proposal.html
+|       |-- review.html
+|       |-- styles.css
+|       |-- supabase-config.js
+|       |-- supabase_schema.sql
+|       |-- upload.html
 ```
 
-## Backend Structure
+## Architecture by Module
 
 ### `api.py`
 
-Main FastAPI application. It exposes the backend API used by the React frontend.
+Main FastAPI application and primary backend entry point.
+
+Responsibilities:
+
+- Authentication
+- Company onboarding
+- Tender upload and processing
+- Proposal generation
+- Procurement orchestration trigger and retrieval
 
 Important endpoints:
 
-- `POST /login`  
-  Authenticates an existing company using email and password.
-
-- `POST /onboard-company`  
-  Registers a company, stores company metadata in Supabase, uploads the knowledge base and proposal template, parses the knowledge base, chunks it, embeds it, and stores vectors in Qdrant.
-
-- `POST /upload-pdf`  
-  Uploads a tender PDF, stores it, parses the document, detects proposal sections, extracts proposal format if available, chunks the full tender, embeds it, and stores tender metadata in Supabase.
-  Checks whether the uploaded tender contains a proposal format and whether that format includes tables.
-
-- `POST /generate-proposal`  
-  Generates and returns `generated_proposal.docx` using either the tender response format or the company template.
+- `POST /login`
+- `POST /onboard-company`
+- `POST /upload-pdf`
+- `POST /generate-proposal`
+- `GET /check-proposal-format`
+- `GET /procurement-orchestration/{doc_id}`
+- `POST /trigger-procurement-orchestration`
+- `POST /submit-quote`
 
 ### `config.py`
 
-Stores service configuration values used by the generation and retrieval pipeline.
-
-For production, secrets should be moved to environment variables and never committed to source control.
-
-### `pipeline_one/parsing/`
-
-Responsible for PDF parsing and normalization.
-
-Key files:
-
-- `pipeline.py`: Entry point for parsing PDFs into a structured `ParsedDocument`.
-- `docling_parser.py`: Uses Docling and PyMuPDF to extract structured text, sections, links, and tables.
-- `normaliser.py`: Converts raw parser output into the internal parsed document model.
-- `models/parsed_document.py`: Data structures for parsed documents, sections, and tables.
-
-### `pipeline_one/chunking/`
-
-Responsible for converting parsed documents into retrieval-ready chunks.
-
-Key files:
-
-- `pipeline.py`: Entry point for chunking.
-- `chunker.py`: Splits large text sections into overlapping chunks and keeps tables atomic.
-- `metadata_builder.py`: Adds metadata such as document id, page numbers, section title, chunk type, and language.
-- `section_walker.py`: Traverses nested document sections.
-- `models/chunk_model.py`: Chunk data model.
-
-### `pipeline_one/embedding/`
-
-Responsible for vector generation and storage.
-
-Key files:
-
-- `pipeline.py`: Connects to Qdrant, creates collections, embeds chunks, and stores vectors.
-- `cohere_embedder.py`: Uses Cohere `embed-multilingual-v3.0` for document and query embeddings.
-- `qdrant_store.py`: Creates Qdrant collections and upserts chunk vectors.
-
-### `pipeline_one/retrieval/`
-
-Responsible for semantic search during proposal generation.
-
-Key file:
-
-- `retrieve_context.py`: Retrieves matching tender chunks and company knowledge from Qdrant, expands neighboring tender chunks, combines context, and removes duplicates.
-
-### `pipeline_one/proposal/`
-
-Responsible for finding and converting proposal response formats.
-
-Key files:
-
-- `detector.py`: Detects proposal-related sections using keywords such as annexure, BOQ, financial proposal, technical proposal, bid format, and price bid.
-- `extractor.py`: Extracts proposal-related pages from the original tender PDF.
-- `json_builder.py`: Converts extracted proposal sections and tables into JSON used by the generation workflow.
-
-### `pipeline_one/utils/`
-
-Utility modules.
-
-Key file:
-
-- `supabase_client.py`: Loads Supabase credentials, creates the Supabase client, and uploads files to Supabase storage buckets.
+Central environment-based configuration shim used by agents and services.
 
 ### `agents/`
 
-Contains the LangGraph proposal generation workflow.
+LangGraph proposal generation workflow.
 
 Key files:
 
-- `graph.py`: Builds the LangGraph state machine.
-- `state.py`: Defines the proposal generation state.
-- `nodes/load_sections_node.py`: Loads sections or table rows from the proposal format.
-- `nodes/process_section_node.py`: Selects the current section or table row.
-- `nodes/validate_section_node.py`: Decides whether a section should be skipped or generated.
-- `nodes/generate_section_node.py`: Retrieves relevant context and generates proposal content.
-- `nodes/check_next_section_node.py`: Checks whether more sections remain.
-- `nodes/compile_proposal_node.py`: Builds the final DOCX document and preserves table structure when in table mode.
+- `graph.py`: state machine construction and routing
+- `state.py`: typed workflow state
+- `nodes/load_sections_node.py`: loads sections or rows from `proposal_json`
+- `nodes/process_section_node.py`: advances section processing
+- `nodes/validate_section_node.py`: determines skip vs generate
+- `nodes/generate_section_node.py`: retrieves context and generates text
+- `nodes/check_next_section_node.py`: checks graph continuation
+- `nodes/compile_proposal_node.py`: compiles the final DOCX
 
-## Frontend Structure
+### `pipeline_one/parsing/`
 
-### `frontend/src/main.jsx`
+Tender and template parsing pipeline.
 
-Main React application. It contains the full single-page workflow:
+Key files:
 
-- Home and overview
-- Company onboarding
-- Tender upload
-- Processing status
-- Dashboard
-- Proposal generation
-- Review
-- Export
+- `pipeline.py`: parse entry point
+- `docling_parser.py`: Docling and PDF extraction logic
+- `normaliser.py`: normalization into internal models
+- `models/parsed_document.py`: parsed document schema
 
-The app uses hash-based routing and stores workflow state in `localStorage` so the user can continue across page refreshes.
+### `pipeline_one/chunking/`
 
-### `frontend/src/api.js`
+Transforms parsed documents into retrieval-ready chunks.
 
-Central API client for the frontend. It reads backend configuration from Vite environment variables and exposes helper functions for:
+Key files:
 
-- `loginCompany`
-- `onboardCompany`
-- `uploadPdf`
-- `checkProposalFormat`
-- `generateProposal`
-- `normalizeCompanySession`
+- `pipeline.py`
+- `chunker.py`
+- `section_walker.py`
+- `metadata_builder.py`
+- `language_detector.py`
+- `models/chunk_model.py`
 
-### `frontend/src/styles.css`
+### `pipeline_one/embedding/`
 
-Application styling for the React interface.
+Embeds chunks and stores them in Qdrant.
+
+Key files:
+
+- `pipeline.py`
+- `cohere_embedder.py`
+- `qdrant_store.py`
+
+### `pipeline_one/retrieval/`
+
+Semantic retrieval for proposal generation.
+
+Key file:
+
+- `retrieve_context.py`
+
+### `pipeline_one/proposal/`
+
+Proposal-format detection, extraction, and normalization.
+
+Key files:
+
+- `detector.py`
+- `extractor.py`
+- `json_builder.py`
+- `llm_proposal_detector.py`
+- `llm_format_validator.py`
+
+### `procurement_orchestration/`
+
+Post-generation active procurement engine.
+
+Key file:
+
+- `engine.py`
+
+Responsibilities:
+
+- Extract requirements from proposal sections and table rows
+- Load vendors from Supabase with fallback defaults
+- Send RFQ emails through SMTP
+- Create pending vendor quote rows in Supabase
+- Score compliance against tender requirements using Cohere rerank
+- Build reusable knowledge suggestions from Qdrant `company_knowledge`
+- Create reminder and escalation schedules
+- Persist orchestration runs in Supabase
+
+### `frontend/src/`
+
+Current frontend SPA implementation.
+
+Key files:
+
+- `main.jsx`: route-level workflow UI and page composition
+- `api.js`: backend API client
+- `styles.css`: app styling
 
 ### `frontend/legacy-static/`
 
-Older static HTML, CSS, JavaScript, and Supabase schema files preserved for reference.
+Older static prototype screens retained for reference only. They are not the active frontend runtime.
 
-### `frontend/dist/`
+### `deployment/`
 
-Production build output generated by Vite.
+Containerized deployment starter for local server deployment and cloud VM deployment.
 
-## Runtime Folders
+Key files:
 
-- `documents/`: Sample tender documents and parsed outputs.
-- `uploaded_pdfs/`: Local copies of uploaded tender PDFs.
-- `extracted_proposals/`: Extracted proposal-format PDFs generated from uploaded tenders.
-- `generated_proposal.docx`: Latest generated proposal output.
-- `frontend/node_modules/`: Installed frontend dependencies.
-- `frontend/dist/`: Built frontend assets.
+- `backend.Dockerfile`: backend image definition
+- `frontend.Dockerfile`: frontend build and Nginx image definition
+- `docker-compose.yml`: orchestration for frontend and backend services
+- `nginx.conf`: SPA serving and `/api` reverse proxy
+- `.env.example`: deployment-time environment template
+- `README.md`: deployment instructions
+
+## Runtime Artifacts
+
+These are referenced by the codebase but are generated at runtime rather than committed as durable source modules:
+
+- files under `generated_proposals/`
+- `uploaded_pdfs/`
+- extracted proposal PDFs
+- frontend build output under `frontend/dist/`
 
 ## Environment Variables
 
@@ -262,7 +378,11 @@ COHERE_KEY=your_cohere_api_key
 QDRANT_URL=your_qdrant_cluster_url
 QDRANT_KEY=your_qdrant_api_key
 GROQ_API_KEY=optional_if_used
-NVIDIA_API_KEY=optional_if_used
+SUPABASE_PROPOSAL_BUCKET=proposal-formats
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
 ```
 
 Create a frontend `.env` file inside `frontend/`:
@@ -275,75 +395,34 @@ VITE_ONBOARD_COMPANY_ENDPOINT=/onboard-company
 VITE_UPLOAD_PDF_ENDPOINT=/upload-pdf
 VITE_GENERATE_PROPOSAL_ENDPOINT=/generate-proposal
 VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT=/check-proposal-format
+VITE_PROCUREMENT_ORCHESTRATION_ENDPOINT=/procurement-orchestration
+VITE_TRIGGER_PROCUREMENT_ORCHESTRATION_ENDPOINT=/trigger-procurement-orchestration
 ```
 
-Set `VITE_GENERATE_PROPOSAL_BASE_URL` to a friend's ngrok URL when only
-`POST /generate-proposal` should run on that machine. Leave it blank to use
-`VITE_BACKEND_BASE_URL` for every API call.
+## Setup
 
-Optional frontend Supabase values can be configured only if a public anon key and proper Row Level Security policies are available:
-
-```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_SUPABASE_COMPANY_TABLE=company_profiles
-VITE_SUPABASE_EMAIL_COLUMN=contact_email
-```
-
-## Prerequisites
-
-- Python 3.10 or newer
-- Node.js 18 or newer
-- npm
-- Supabase project with required tables and storage buckets
-- Qdrant Cloud cluster
-- Cohere API key
-- Ollama running locally for proposal generation
-
-The generation node currently calls an OpenAI-compatible local endpoint:
-
-```text
-http://localhost:11434/v1
-```
-
-Make sure Ollama is running and the configured model is available before generating proposals.
-
-## Backend Setup
-
-From the project root:
+### Backend
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-Install backend dependencies:
-
-```powershell
-pip install fastapi uvicorn python-multipart supabase python-dotenv bcrypt python-docx reportlab pymupdf qdrant-client cohere openai langgraph docling langdetect requests
-```
-
-Start the backend:
-
-```powershell
+pip install -r requirements.txt
 uvicorn api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The backend will run at:
+Backend URL:
 
 ```text
 http://localhost:8000
 ```
 
-FastAPI interactive API documentation is available at:
+Swagger docs:
 
 ```text
 http://localhost:8000/docs
 ```
 
-## Frontend Setup
-
-Open a new terminal and run:
+### Frontend
 
 ```powershell
 cd frontend
@@ -351,144 +430,131 @@ npm install
 npm run dev
 ```
 
-The frontend will run at:
+Frontend URL:
 
 ```text
 http://localhost:5173
 ```
 
-To build the frontend for production:
+Production build:
 
 ```powershell
 cd frontend
 npm run build
 ```
 
-To preview the production build:
+Preview build:
 
 ```powershell
 cd frontend
 npm run preview
 ```
 
-The preview server runs at:
+### Docker Deployment
+
+The project now includes a ready-to-use deployment package under `deployment/`.
+
+Quick start:
+
+```powershell
+cd deployment
+copy .env.example .env
+docker compose up --build -d
+```
+
+Default URLs:
 
 ```text
-http://localhost:4173
+Frontend: http://localhost:8080
+Backend:  http://localhost:8000
 ```
 
-## Supabase Requirements
+The frontend container serves the built SPA through Nginx and proxies `/api/*` traffic to the backend container.
 
-The backend expects Supabase to provide:
+## API Summary
 
-- A `companies` table for company profile, contact, password hash, knowledge base URL, and proposal template URL.
-- A `tenders` table for uploaded tender metadata, document id, proposal detection status, and extracted proposal JSON.
-- A `company-documents` storage bucket for company knowledge bases and proposal templates.
-- A `tender-documents` storage bucket for uploaded tender PDFs.
+### `POST /login`
 
-The frontend legacy folder includes `frontend/legacy-static/supabase_schema.sql`, which can be used as a reference for database setup.
+Authenticates a company user.
 
-## API Reference
+### `POST /onboard-company`
 
-### Login
+Registers a company, uploads company documents, parses the knowledge base, and stores embeddings.
 
-```http
-POST /login
-Content-Type: multipart/form-data
-```
+### `POST /upload-pdf`
 
-Fields:
+Uploads a tender PDF, parses the document, detects the proposal format, chunks the content, stores embeddings, and persists tender metadata.
 
-- `email`
-- `password`
+### `GET /check-proposal-format`
 
-Returns company session details.
+Returns whether the uploaded tender contains its own proposal format and whether tables were detected.
 
-### Onboard Company
+### `POST /generate-proposal`
 
-```http
-POST /onboard-company
-Content-Type: multipart/form-data
-```
+Generates a uniquely named proposal DOCX under `generated_proposals/`, stores the generated file path in the `tenders` table, and automatically triggers procurement orchestration.
 
-Fields:
+### `GET /procurement-orchestration/{doc_id}`
 
-- `company_name`
-- `industry`
-- `contact_email`
-- `contact_phone`
-- `password`
-- `knowledge_base`
-- `proposal_template`
+Returns the orchestration record for a tender.
 
-Returns company id and uploaded file paths.
+The response includes:
 
-### Upload Tender PDF
+- `multi_agent_negotiation`
+- `compliance_scoring`
+- `similarity_reuse_intelligence`
+- `deadline_orchestration`
 
-```http
-POST /upload-pdf
-Content-Type: multipart/form-data
-```
+### `POST /trigger-procurement-orchestration`
 
-Fields:
+Manually triggers orchestration for an existing tender.
 
-- `company_id`
-- `file`
+### `POST /submit-quote`
 
-Returns parsing, chunking, embedding, and proposal-format detection results.
-
-### Check Proposal Format
-
-```http
-GET /check-proposal-format?doc_id=your_document_id
-```
-
-Returns whether the tender contains a detected proposal format.
-
-### Generate Proposal
-
-```http
-POST /generate-proposal
-Content-Type: multipart/form-data
-```
-
-Fields:
-
-- `company_id`
-- `doc_id`
-- `format_source`
-
-`format_source` can be:
-
-- `tender`: Use proposal format extracted from the tender PDF.
-- `template`: Use the company proposal template uploaded during onboarding.
-
-Returns a downloadable DOCX file.
+Allows a vendor or integration service to update a pending row in `vendor_quotes` by `quote_id`.
 
 ## End-to-End Workflow
 
-1. Start Supabase, Qdrant, and Ollama requirements.
-2. Start the FastAPI backend on port `8000`.
-3. Start the Vite frontend on port `5173`.
-4. Open the frontend in the browser.
-5. Onboard a company by uploading a knowledge base and proposal template.
-6. Upload a tender PDF.
-7. Let the backend parse, chunk, embed, and detect proposal format.
-8. Choose whether to generate using tender format or onboarded template.
-9. Generate the proposal.
-10. Review and export the generated DOCX file.
+1. Start Supabase, Qdrant, and the LLM dependencies.
+2. Start the FastAPI backend.
+3. Start the Vite frontend.
+4. Onboard a company with a knowledge base and template.
+5. Upload a tender PDF.
+6. Let the backend parse, chunk, embed, and detect proposal format.
+7. Generate the proposal using either the tender format or the onboarded template.
+8. Review the generated draft.
+9. Inspect vendor RFQs, submitted quotes, compliance scores, reuse suggestions, and deadline alerts.
+10. Export the proposal and prepare final submission.
+
+## Supabase Expectations
+
+The backend expects:
+
+- A `companies` table
+- A `tenders` table
+- A `vendors` table
+- A `vendor_quotes` table
+- An `orchestration_runs` table
+- A `company-documents` storage bucket
+- A `tender-documents` storage bucket
+- Optionally, a proposal-format storage bucket such as `proposal-formats`
+
+Reference SQL is available in `frontend/legacy-static/supabase_schema.sql` and `supabase_tender_metadata_migration.sql`.
 
 ## Production Notes
 
-- Move all hardcoded credentials out of source files and into environment variables.
-- Do not commit `.env`, generated proposals, uploaded PDFs, extracted proposal PDFs, `node_modules`, or build artifacts.
-- Add a backend `requirements.txt` or `pyproject.toml` for reproducible deployments.
-- Add authentication/session tokens for production instead of relying only on company id stored in browser state.
-- Add validation for uploaded file size, type, and scan status.
-- Configure CORS origins for deployed frontend domains only.
-- Use secure Supabase Row Level Security policies.
-- Add logging, monitoring, retries, and background jobs for long-running parsing and embedding tasks.
-- Store generated proposal outputs with unique names to avoid overwriting `generated_proposal.docx`.
+- Move all secrets into environment variables and secret stores.
+- Extend the SMTP RFQ flow with delivery tracking or webhook confirmations.
+- Add vendor-facing authentication or signed quote submission links around `POST /submit-quote`.
+- Add session auth and role-based access control.
+- Restrict CORS to deployed frontend origins.
+- Add file validation, malware scanning, and upload limits.
+- Add audit logging and retry handling for long-running parsing and generation jobs.
+- Version generated proposal artifacts instead of overwriting a single output file.
+- For production deployment, place Supabase, Qdrant, SMTP, and LLM endpoints behind managed infrastructure and inject those endpoints through `deployment/.env`.
+
+## Diagram Prompts
+
+Gemini-ready prompts for user flow, system architecture, and UML diagrams are available in `DIAGRAM_PROMPTS.md`.
 
 ## Authors
 

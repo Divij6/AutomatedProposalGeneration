@@ -10,6 +10,7 @@ Changes vs previous:
 """
 
 import logging
+from pathlib import Path
 
 from docx import Document
 from docx.oxml import OxmlElement
@@ -276,11 +277,13 @@ def compile_proposal_node(state: dict) -> dict:
 
             doc.add_paragraph("")
 
-    output_file = "generated_proposal.docx"
-    doc.save(output_file)
-    logger.info("Proposal saved: %s", output_file)
+    output_file = state.get("output_file") or "generated_proposal.docx"
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(output_path)
+    logger.info("Proposal saved: %s", output_path)
 
-    state["output_file"] = output_file
+    state["output_file"] = str(output_path)
     return state
 
 

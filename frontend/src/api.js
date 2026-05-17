@@ -9,6 +9,8 @@ export const config = {
     uploadPdf: env.VITE_UPLOAD_PDF_ENDPOINT || '/upload-pdf',
     generateProposal: env.VITE_GENERATE_PROPOSAL_ENDPOINT || '/generate-proposal',
     checkProposalFormat: env.VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT || '/check-proposal-format',
+    procurementOrchestration: env.VITE_PROCUREMENT_ORCHESTRATION_ENDPOINT || '/procurement-orchestration',
+    triggerProcurementOrchestration: env.VITE_TRIGGER_PROCUREMENT_ORCHESTRATION_ENDPOINT || '/trigger-procurement-orchestration',
   },
 };
 
@@ -137,6 +139,27 @@ export async function generateProposal({ companyId, docId, formatSource }) {
     filename: filenameMatch?.[1] || 'generated_proposal.docx',
     downloadUrl: URL.createObjectURL(blob),
   };
+}
+
+export async function getProcurementOrchestration({ docId }) {
+  const response = await fetch(buildUrl(`${config.endpoints.procurementOrchestration}/${encodeURIComponent(docId)}`), {
+    method: 'GET',
+  });
+
+  return readResponse(response);
+}
+
+export async function triggerProcurementOrchestration({ companyId, docId }) {
+  const formData = new FormData();
+  formData.append('company_id', companyId);
+  formData.append('doc_id', docId);
+
+  const response = await fetch(buildUrl(config.endpoints.triggerProcurementOrchestration), {
+    method: 'POST',
+    body: formData,
+  });
+
+  return readResponse(response);
 }
 
 export function normalizeCompanySession(payload, fallback = {}) {

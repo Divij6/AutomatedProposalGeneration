@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deployment/backend.Dockerfile
+    container_name: datasmith-backend
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ../generated_proposals:/app/generated_proposals
+      - ../uploaded_pdfs:/app/uploaded_pdfs
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deployment/frontend.Dockerfile
+      args:
+        VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-/api}
+        VITE_GENERATE_PROPOSAL_BASE_URL: ${VITE_GENERATE_PROPOSAL_BASE_URL:-/api}
+        VITE_LOGIN_ENDPOINT: ${VITE_LOGIN_ENDPOINT:-/login}
+        VITE_ONBOARD_COMPANY_ENDPOINT: ${VITE_ONBOARD_COMPANY_ENDPOINT:-/onboard-company}
+        VITE_UPLOAD_PDF_ENDPOINT: ${VITE_UPLOAD_PDF_ENDPOINT:-/upload-pdf}
+        VITE_GENERATE_PROPOSAL_ENDPOINT: ${VITE_GENERATE_PROPOSAL_ENDPOINT:-/generate-proposal}
+        VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT: ${VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT:-/check-proposal-format}
+        VITE_PROCUREMENT_ORCHESTRATION_ENDPOINT: ${VITE_PROCUREMENT_ORCHESTRATION_ENDPOINT:-/procurement-orchestration}
+        VITE_TRIGGER_PROCUREMENT_ORCHESTRATION_ENDPOINT: ${VITE_TRIGGER_PROCUREMENT_ORCHESTRATION_ENDPOINT:-/trigger-procurement-orchestration}
+    container_name: datasmith-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+

@@ -701,6 +701,10 @@ from pipeline_one.proposal.extractor import extract_proposal_pdf
 from pipeline_one.proposal.json_builder import build_proposal_json
 from pipeline_one.proposal.llm_format_validator import validate_and_normalise_proposal_json
 from pipeline_one.utils.supabase_client import supabase, upload_file_to_supabase
+from procurement_orchestration import (
+    get_orchestration_status,
+    run_active_procurement_orchestration,
+)
 
 from agents.graph import build_graph
 
@@ -818,6 +822,8 @@ def build_proposal_json_from_docx(docx_path: str) -> dict:
 
 UPLOAD_DIR = Path("uploaded_pdfs")
 UPLOAD_DIR.mkdir(exist_ok=True)
+GENERATED_PROPOSAL_DIR = Path("generated_proposals")
+GENERATED_PROPOSAL_DIR.mkdir(exist_ok=True)
 
 COHERE_KEY = os.getenv("COHERE_KEY")
 QDRANT_URL = os.getenv("QDRANT_URL")
@@ -1062,6 +1068,13 @@ async def generate_proposal(
         logger.debug("Accessing tender_response.data index: 0")
         tender_row = tender_response.data[0]
 
+        company_name = "the Bidder"
+        company_response = supabase.table("companies").select(
+            "company_name, proposal_template_url"
+        ).eq("id", company_id).execute()
+        if company_response.data:
+            company_name = company_response.data[0].get("company_name") or company_name
+
         # ── Determine proposal_json based on format_source ─────────
         proposal_json = None
 
@@ -1083,10 +1096,6 @@ async def generate_proposal(
         else:
             # format_source == "template" — use company onboarded template
             logger.info("Using company onboarded template")
-
-            company_response = supabase.table("companies").select(
-                "proposal_template_url"
-            ).eq("id", company_id).execute()
 
             if not company_response.data:
                 raise HTTPException(status_code=404, detail="Company not found")
@@ -1126,6 +1135,7 @@ async def generate_proposal(
 
         initial_state = {
             "company_id": company_id,
+            "company_name": company_name,
             "doc_id": doc_id,
             "format_source": format_source,
             "proposal_json": proposal_json,
@@ -1137,7 +1147,9 @@ async def generate_proposal(
             "status": "starting",
             "skip_section": False,
             "mode": "paragraph",  # will be overwritten by load_sections_node
-            "output_file": "",
+            "output_file": str(
+                GENERATED_PROPOSAL_DIR / f"{company_id}_{doc_id}_{uuid.uuid4().hex[:8]}.docx"
+            ),
             "error": None,
         }
 
@@ -1145,16 +1157,36 @@ async def generate_proposal(
 
         logger.info("Graph execution complete")
 
+        try:
+            orchestration_result = run_active_procurement_orchestration(
+                company_id=company_id,
+                company_name=company_name,
+                doc_id=doc_id,
+                proposal_json=proposal_json,
+                generated_sections=result.get("generated_sections", []),
+                tender_row=tender_row,
+            )
+            logger.info(
+                "Procurement orchestration triggered | run_id=%s",
+                orchestration_result.get("run_id"),
+            )
+        except Exception:
+            logger.exception("Post-generation procurement orchestration failed")
+
         output_file = result.get("output_file")
 
         if not output_file or not os.path.exists(output_file):
             raise HTTPException(status_code=500, detail="Output file missing or not generated")
 
+        supabase.table("tenders").update({
+            "proposal_file_path": output_file,
+        }).eq("doc_id", doc_id).execute()
+
         logger.info("Returning file: %s", output_file)
 
         return FileResponse(
             path=output_file,
-            filename="generated_proposal.docx",
+            filename=Path(output_file).name,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
@@ -1194,6 +1226,79 @@ async def check_proposal_format(doc_id: str):
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/procurement-orchestration/{doc_id}")
+async def procurement_orchestration_status(doc_id: str):
+    result = get_orchestration_status(doc_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Procurement orchestration has not run for this tender")
+    return result
+
+
+@app.post("/trigger-procurement-orchestration")
+async def trigger_procurement_orchestration(
+    company_id: str = Form(...),
+    doc_id: str = Form(...),
+):
+    try:
+        tender_response = supabase.table("tenders").select("*").eq("doc_id", doc_id).execute()
+        if not tender_response.data:
+            raise HTTPException(status_code=404, detail="Tender not found")
+
+        company_response = supabase.table("companies").select("company_name").eq("id", company_id).execute()
+        company_name = (
+            company_response.data[0].get("company_name")
+            if company_response.data else "the Bidder"
+        )
+        tender_row = tender_response.data[0]
+        proposal_json = tender_row.get("proposal_json")
+        if not proposal_json:
+            raise HTTPException(status_code=400, detail="Tender has no proposal_json to orchestrate")
+
+        return run_active_procurement_orchestration(
+            company_id=company_id,
+            company_name=company_name,
+            doc_id=doc_id,
+            proposal_json=proposal_json,
+            generated_sections=[],
+            tender_row=tender_row,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Manual procurement orchestration trigger failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/submit-quote")
+async def submit_quote(
+    quote_id: str = Form(...),
+    estimated_total: float = Form(...),
+    currency: str = Form(...),
+    lead_time_days: int = Form(...),
+    validity_days: int = Form(...),
+    status: str = Form(default="submitted"),
+):
+    try:
+        response = supabase.table("vendor_quotes").update({
+            "estimated_total": estimated_total,
+            "currency": currency,
+            "lead_time_days": lead_time_days,
+            "validity_days": validity_days,
+            "status": status,
+        }).eq("quote_id", quote_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Quote not found")
+        return {
+            "status": "success",
+            "quote": response.data[0],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Quote submission failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 

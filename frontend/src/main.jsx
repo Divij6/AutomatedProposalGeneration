@@ -1395,6 +1395,7 @@ import './styles.css';
 import {
   checkProposalFormat,
   generateProposal,
+  getProcurementOrchestration,
   loginCompany,
   normalizeCompanySession,
   onboardCompany,
@@ -1406,6 +1407,7 @@ const STORAGE_KEYS = {
   session: 'datasmithSession',
   docState: 'datasmithDocState',
   proposalResult: 'datasmithProposalResult',
+  orchestrationResult: 'datasmithOrchestrationResult',
   feedback: 'datasmithFeedback',
   proposalMode: 'proposalMode',
 };
@@ -1512,6 +1514,7 @@ function App() {
   const [proposalMode, setProposalMode] = useState(() => normalizeFormatSource(localStorage.getItem(STORAGE_KEYS.proposalMode)));
   const [docState, setDocState] = useState(() => getStoredJson(STORAGE_KEYS.docState, {}));
   const [proposalResult, setProposalResult] = useState(() => getStoredJson(STORAGE_KEYS.proposalResult));
+  const [orchestrationResult, setOrchestrationResult] = useState(() => getStoredJson(STORAGE_KEYS.orchestrationResult));
   const [feedback, setFeedback] = useState(() => getStoredJson(STORAGE_KEYS.feedback, {}));
 
   const navigate = useCallback((nextRoute) => {
@@ -1534,8 +1537,10 @@ function App() {
       return null;
     });
     setFeedback({});
+    setOrchestrationResult(null);
     localStorage.removeItem(STORAGE_KEYS.docState);
     localStorage.removeItem(STORAGE_KEYS.proposalResult);
+    localStorage.removeItem(STORAGE_KEYS.orchestrationResult);
     localStorage.removeItem(STORAGE_KEYS.feedback);
   }, []);
 
@@ -1562,6 +1567,11 @@ function App() {
       return nextValue;
     });
     setStoredJson(STORAGE_KEYS.proposalResult, sanitizeProposalResult(nextValue));
+  }, []);
+
+  const saveOrchestrationResult = useCallback((nextValue) => {
+    setOrchestrationResult(nextValue);
+    setStoredJson(STORAGE_KEYS.orchestrationResult, nextValue);
   }, []);
 
   const saveFeedback = useCallback((nextValue) => {
@@ -1591,6 +1601,8 @@ function App() {
     saveDocState,
     proposalResult,
     saveProposalResult,
+    orchestrationResult,
+    saveOrchestrationResult,
     feedback,
     saveFeedback,
     navigate,
@@ -1610,7 +1622,7 @@ function App() {
     };
     return pages[route] || pages.home;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, session, proposalMode, docState, proposalResult, feedback]);
+  }, [route, session, proposalMode, docState, proposalResult, orchestrationResult, feedback]);
 
   return (
     <div className="shell">
@@ -2082,7 +2094,7 @@ function UploadPage({ session, docState, saveDocState, proposalMode, setProposal
   );
 }
 
-function ProcessingPage({ session, docState, proposalMode, setProposalMode, saveDocState, saveProposalResult, guardedNavigate }) {
+function ProcessingPage({ session, docState, proposalMode, setProposalMode, saveDocState, saveProposalResult, saveOrchestrationResult, guardedNavigate }) {
   const [status, setStatus] = useState({ type: 'info', text: 'Review the extraction stages and generate the first draft.' });
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -2170,9 +2182,17 @@ function ProcessingPage({ session, docState, proposalMode, setProposalMode, save
         filename: payload.filename,
         blob: payload.blob,
       };
+      try {
+        const orchestration = await getProcurementOrchestration({ docId: docState.doc_id });
+        saveOrchestrationResult(orchestration);
+        result.orchestrationSummary = orchestration?.summary;
+      } catch {
+        saveOrchestrationResult(null);
+      }
+
       saveProposalResult(result);
       setPreviewData(result);
-      setStatus({ type: 'success', text: 'Draft ready. Preview below — download or open in the draft editor.' });
+      setStatus({ type: 'success', text: 'Draft ready. Vendor RFQs, compliance scoring, reuse intelligence, and deadline alerts are now orchestrated.' });
       setShowPreview(true);
     } catch (error) {
       setStatus({ type: 'error', text: error.message || 'Unable to generate the draft right now.' });
@@ -2373,7 +2393,8 @@ function ProposalPreviewPanel({ previewData, onViewDraft, onDownload, onDismiss 
   );
 }
 
-function DashboardPage({ session, docState, proposalMode, guardedNavigate, proposalResult }) {
+function DashboardPage({ session, docState, proposalMode, guardedNavigate, proposalResult, orchestrationResult }) {
+  const orchestrationSummary = orchestrationResult?.summary || {};
   const queue = [
     {
       name: docState?.fileName || 'New tender package',
@@ -2391,10 +2412,17 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
     },
     {
       name: 'Commercial annexures',
-      owner: 'Bid manager',
-      stage: 'Pending input',
-      progress: 'Missing values',
-      due: 'Open',
+      owner: 'Negotiation agents',
+      stage: 'Vendor sourcing',
+      progress: orchestrationSummary.vendor_rfq_count ? `${orchestrationSummary.vendor_rfq_count} RFQs queued` : 'Awaiting RFQs',
+      due: 'Quote comparison',
+    },
+    {
+      name: 'Deadline orchestration',
+      owner: 'Submission owner',
+      stage: 'Reminder automation',
+      progress: orchestrationSummary.deadline_alerts ? `${orchestrationSummary.deadline_alerts} alerts armed` : 'Deadline needed',
+      due: 'Escalation path',
     },
   ];
 
@@ -2411,6 +2439,8 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
         <Metric label="Industry" value={session?.industry || 'Not set'} text={session?.contact_phone || 'Contact pending'} />
         <Metric label="Tender" value={docState?.fileName || 'No upload yet'} text={docState?.doc_id || 'Document ID pending'} />
         <Metric label="Format source" value={getFormatSourceLabel(proposalMode)} text={getProposalFormatStatus(docState)} />
+        <Metric label="Compliance" value={`${Math.round(orchestrationSummary.average_compliance || 0)}%`} text="Post-generation clause coverage score" />
+        <Metric label="Vendor RFQs" value={orchestrationSummary.vendor_rfq_count || 0} text="Supplier quote requests queued" />
       </section>
 
       <section className="dashboard-showcase">
@@ -2429,7 +2459,8 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
             <ProgressStep title="Onboard" active />
             <ProgressStep title="Upload" active={Boolean(docState?.fileName)} />
             <ProgressStep title="Process" active={Boolean(proposalResult)} />
-            <ProgressStep title="Review" />
+            <ProgressStep title="Orchestrate" active={Boolean(orchestrationResult)} />
+            <ProgressStep title="Review" active={Boolean(orchestrationResult)} />
             <ProgressStep title="Export" />
           </div>
 
@@ -2477,6 +2508,15 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
             </button>
           </div>
           <div className="sidebar-card">
+            <div className="stack-panel__eyebrow">Active Procurement</div>
+            <ul className="plain-list">
+              <li>Negotiation agents split BOQ and requirement rows by category</li>
+              <li>Supplier RFQs are queued with price, lead time, and compliance requests</li>
+              <li>Best quote benchmarks feed back into commercial proposal review</li>
+              <li>Deadline reminders escalate missing information to owners</li>
+            </ul>
+          </div>
+          <div className="sidebar-card">
             <div className="stack-panel__eyebrow">Workspace Focus</div>
             <ul className="plain-list">
               <li>Keep workspace details current before each response cycle</li>
@@ -2491,7 +2531,7 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
   );
 }
 
-function ProposalPage({ proposalResult, docState, guardedNavigate }) {
+function ProposalPage({ proposalResult, docState, orchestrationResult, guardedNavigate }) {
   const outline = proposalResult?.sections?.length
     ? proposalResult.sections
     : ['Executive Summary', 'Eligibility And Compliance', 'Technical Approach', 'Past Performance', 'Commercial Inputs'];
@@ -2520,6 +2560,8 @@ function ProposalPage({ proposalResult, docState, guardedNavigate }) {
             <div className="stack-panel__eyebrow">Draft metadata</div>
             <PreviewItem label="Tender" value={docState?.fileName || 'Not uploaded'} />
             <PreviewItem label="Draft state" value={proposalResult ? 'Draft ready' : 'Awaiting generation'} />
+            <PreviewItem label="Compliance score" value={`${Math.round(orchestrationResult?.summary?.average_compliance || 0)}%`} />
+            <PreviewItem label="RFQs queued" value={orchestrationResult?.summary?.vendor_rfq_count || 0} />
             {proposalResult?.downloadUrl && (
               <button
                 className="btn btn--ghost"
@@ -2536,6 +2578,18 @@ function ProposalPage({ proposalResult, docState, guardedNavigate }) {
                 ↓ Download .docx
               </button>
             )}
+          </div>
+          <div className="sidebar-card">
+            <div className="stack-panel__eyebrow">Procurement Agents</div>
+            <div className="outline-list">
+              {(orchestrationResult?.multi_agent_negotiation || []).slice(0, 5).map((item, i) => (
+                <div key={`${item.requirement_id}-${i}`} className="outline-link">
+                  <span>{item.agent}</span>
+                  <StatusToken label={item.status.replaceAll('_', ' ')} tone={item.status.includes('dispatched') ? 'done' : 'warning'} />
+                </div>
+              ))}
+              {!orchestrationResult && <div className="muted">Generate a proposal to activate supplier orchestration.</div>}
+            </div>
           </div>
         </aside>
 
@@ -2588,9 +2642,18 @@ function ProposalPage({ proposalResult, docState, guardedNavigate }) {
   );
 }
 
-function ReviewPage({ guardedNavigate }) {
+function ReviewPage({ orchestrationResult, guardedNavigate }) {
   const [filter, setFilter] = useState('all');
-  const filtered = REVIEW_ITEMS.filter((item) => filter === 'all' || item.category === filter);
+  const complianceItems = (orchestrationResult?.compliance_scoring?.sections || []).slice(0, 12).map((item, index) => ({
+    id: `compliance-${index}`,
+    tone: item.status === 'compliant' ? 'done' : item.status === 'gap' ? 'danger' : 'warning',
+    category: item.status === 'compliant' ? 'high' : item.status === 'gap' ? 'missing' : 'review',
+    title: item.section_title || `Requirement ${index + 1}`,
+    text: `${item.score}% compliance - ${item.recommendation}`,
+    status: item.status.replaceAll('_', ' '),
+  }));
+  const reviewItems = complianceItems.length ? complianceItems : REVIEW_ITEMS;
+  const filtered = reviewItems.filter((item) => filter === 'all' || item.category === filter);
 
   return (
     <main className="page-main page-section">
@@ -2861,3 +2924,4 @@ function FilterButton({ label, active, onClick }) {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+

@@ -1,1 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+supabase
+python-dotenv
+bcrypt
+python-docx
+reportlab
+pymupdf
+qdrant-client
+cohere
+openai
 groq
+langgraph
+docling
+langdetect
+requests
