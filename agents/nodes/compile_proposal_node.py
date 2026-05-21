@@ -252,8 +252,8 @@ def compile_proposal_node(state: dict) -> dict:
         if not generated_sections:
             logger.warning("No generated sections; writing fallback")
             doc.add_paragraph(
-                f"{company_name} submits this proposal in full compliance with the tender requirements. "
-                "Detailed technical and commercial information will be provided as part of the complete bid submission."
+                f"{company_name} submits this proposal response for the tender requirements. "
+                "No generated clause responses were available for compilation."
             )
 
         for section in generated_sections:

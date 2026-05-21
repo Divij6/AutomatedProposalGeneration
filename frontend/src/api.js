@@ -6,6 +6,7 @@ export const config = {
   endpoints: {
     login: env.VITE_LOGIN_ENDPOINT || '/login',
     onboardCompany: env.VITE_ONBOARD_COMPANY_ENDPOINT || '/onboard-company',
+    updateCompanyAssets: env.VITE_UPDATE_COMPANY_ASSETS_ENDPOINT || '/update-company-assets',
     uploadPdf: env.VITE_UPLOAD_PDF_ENDPOINT || '/upload-pdf',
     generateProposal: env.VITE_GENERATE_PROPOSAL_ENDPOINT || '/generate-proposal',
     checkProposalFormat: env.VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT || '/check-proposal-format',
@@ -88,6 +89,34 @@ export async function onboardCompany(values) {
   return readResponse(response);
 }
 
+export async function updateCompanyAssets({ companyId, knowledgeBase, proposalTemplate }) {
+  if (!companyId) {
+    throw new Error('Company workspace is missing.');
+  }
+
+  if (!knowledgeBase && !proposalTemplate) {
+    throw new Error('Choose a knowledge base or proposal template to update.');
+  }
+
+  const formData = new FormData();
+  formData.append('company_id', companyId);
+
+  if (knowledgeBase) {
+    formData.append('knowledge_base', knowledgeBase);
+  }
+
+  if (proposalTemplate) {
+    formData.append('proposal_template', proposalTemplate);
+  }
+
+  const response = await fetch(buildUrl(config.endpoints.updateCompanyAssets), {
+    method: 'POST',
+    body: formData,
+  });
+
+  return readResponse(response);
+}
+
 export async function uploadPdf({ companyId, file }) {
   const formData = new FormData();
   formData.append('company_id', companyId);
@@ -146,6 +175,12 @@ export function normalizeCompanySession(payload, fallback = {}) {
     company_id: source.company_id || source.id || fallback.company_id || '',
     company_name: source.company_name || fallback.company_name || '',
     contact_email: source.contact_email || fallback.contact_email || '',
+    contact_phone: source.contact_phone || fallback.contact_phone || '',
+    industry: source.industry || fallback.industry || '',
+    knowledge_base_name: source.knowledge_base_name || fallback.knowledge_base_name || '',
+    proposal_template_name: source.proposal_template_name || fallback.proposal_template_name || '',
+    knowledge_base_path: source.knowledge_base_path || source.knowledge_base_url || fallback.knowledge_base_path || '',
+    template_path: source.template_path || source.proposal_template_url || fallback.template_path || '',
     raw: payload,
   };
 }

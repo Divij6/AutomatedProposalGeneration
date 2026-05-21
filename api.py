@@ -690,6 +690,7 @@ import os
 import uuid
 import tempfile
 import logging
+from typing import Optional
 from pathlib import Path
 from fastapi import UploadFile, File, Form
 
@@ -705,6 +706,8 @@ from pipeline_one.utils.supabase_client import supabase, upload_file_to_supabase
 from agents.graph import build_graph
 
 from docx import Document
+from qdrant_client import QdrantClient
+from qdrant_client.models import FieldCondition, Filter, FilterSelector, MatchValue
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
@@ -814,6 +817,68 @@ def build_proposal_json_from_docx(docx_path: str) -> dict:
     return {"sections": sections}
 
 
+def _filename_from_storage_path(path: Optional[str]) -> str:
+    if not path:
+        return ""
+    return os.path.basename(str(path))
+
+
+def _delete_company_knowledge_vectors(company_id: str) -> None:
+    client = QdrantClient(
+        url=QDRANT_URL,
+        api_key=QDRANT_KEY,
+        timeout=60,
+    )
+    client.delete(
+        collection_name="company_knowledge",
+        points_selector=FilterSelector(
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="company_id",
+                        match=MatchValue(value=company_id),
+                    ),
+                ],
+            ),
+        ),
+    )
+
+
+def _embed_company_knowledge(kb_path: str, company_id: str, replace_existing: bool = False) -> dict:
+    if replace_existing:
+        try:
+            _delete_company_knowledge_vectors(company_id)
+        except Exception as e:
+            logger.warning("Could not delete existing company knowledge vectors for %s: %s", company_id, e)
+
+    kb_bytes = supabase.storage.from_("company-documents").download(kb_path)
+    file_ext = kb_path.split(".")[-1].lower()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_ext}") as tmp:
+        tmp.write(kb_bytes)
+        temp_kb_path = tmp.name
+
+    # Convert DOCX to PDF only for the knowledge base (parser expects PDF).
+    if temp_kb_path.endswith(".docx"):
+        temp_kb_path = convert_docx_to_pdf(temp_kb_path)
+
+    parsed_doc = run_parsing_pipeline(pdf_path=temp_kb_path)
+    chunks = run_chunking_pipeline(parsed_doc)
+    for chunk in chunks:
+        chunk.metadata["company_id"] = company_id
+
+    embedding_result = run_embedding_pipeline(
+        chunks=chunks,
+        doc_id=company_id,
+        cohere_key=COHERE_KEY,
+        qdrant_url=QDRANT_URL,
+        qdrant_key=QDRANT_KEY,
+        collection_name="company_knowledge",
+    )
+    logger.info("Company knowledge embedded: %s chunks", len(chunks))
+    return embedding_result
+
+
 # ── App setup ──────────────────────────────────────────────────────────────────
 
 UPLOAD_DIR = Path("uploaded_pdfs")
@@ -857,6 +922,13 @@ async def login(email: str = Form(...), password: str = Form(...)):
             "status": "success",
             "company_id": company["id"],
             "company_name": company["company_name"],
+            "industry": company.get("industry", ""),
+            "contact_email": company.get("contact_email", email),
+            "contact_phone": company.get("contact_phone", ""),
+            "knowledge_base_path": company.get("knowledge_base_url", ""),
+            "template_path": company.get("proposal_template_url", ""),
+            "knowledge_base_name": _filename_from_storage_path(company.get("knowledge_base_url")),
+            "proposal_template_name": _filename_from_storage_path(company.get("proposal_template_url")),
         }
     except HTTPException:
         raise
@@ -922,12 +994,74 @@ async def onboard_company(
     return {
         "status": "success",
         "company_id": company_id,
+        "company_name": company_name,
+        "industry": industry,
+        "contact_email": contact_email,
+        "contact_phone": contact_phone,
         "knowledge_base_path": kb_path,
         "template_path": template_path,
+        "knowledge_base_name": knowledge_base.filename,
+        "proposal_template_name": proposal_template.filename,
     }
 
 
 # ── /upload-pdf ────────────────────────────────────────────────────────────────
+
+@app.post("/update-company-assets")
+async def update_company_assets(
+    company_id: str = Form(...),
+    knowledge_base: Optional[UploadFile] = File(None),
+    proposal_template: Optional[UploadFile] = File(None),
+):
+    if knowledge_base is None and proposal_template is None:
+        raise HTTPException(status_code=400, detail="Upload a knowledge base or proposal template to update")
+
+    try:
+        company_response = supabase.table("companies").select("*").eq("id", company_id).execute()
+        if not company_response.data:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        update_payload = {}
+        response_payload = {
+            "status": "success",
+            "company_id": company_id,
+        }
+
+        if knowledge_base is not None:
+            kb_path = upload_file_to_supabase(
+                knowledge_base,
+                bucket_name="company-documents",
+                folder_name=company_id,
+            )
+            embedding_result = _embed_company_knowledge(kb_path, company_id, replace_existing=True)
+            update_payload["knowledge_base_url"] = kb_path
+            response_payload.update({
+                "knowledge_base_path": kb_path,
+                "knowledge_base_name": knowledge_base.filename,
+                "knowledge_chunks": embedding_result.get("total_chunks"),
+            })
+
+        if proposal_template is not None:
+            template_path = upload_file_to_supabase(
+                proposal_template,
+                bucket_name="company-documents",
+                folder_name=company_id,
+            )
+            update_payload["proposal_template_url"] = template_path
+            response_payload.update({
+                "template_path": template_path,
+                "proposal_template_name": proposal_template.filename,
+            })
+
+        supabase.table("companies").update(update_payload).eq("id", company_id).execute()
+        return response_payload
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Company asset update failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/upload-pdf")
 async def upload_pdf(company_id: str = Form(...), file: UploadFile = File(...)):

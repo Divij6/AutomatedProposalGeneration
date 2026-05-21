@@ -38,33 +38,6 @@
 
 //   return 'No format detected';
 // }
-// const REVIEW_ITEMS = [
-//   {
-//     id: 1,
-//     tone: 'done',
-//     category: 'high',
-//     title: 'Company profile aligned',
-//     text: 'Registered entity details, sector, and credential summary are already aligned to the tender narrative.',
-//     status: 'Ready',
-//   },
-//   {
-//     id: 2,
-//     tone: 'warning',
-//     category: 'review',
-//     title: 'Past performance narrative',
-//     text: 'Similar project references were found, but the wording still needs a reviewer pass before submission.',
-//     status: 'Needs review',
-//   },
-//   {
-//     id: 3,
-//     tone: 'danger',
-//     category: 'missing',
-//     title: 'Commercial annexure values',
-//     text: 'Tender-specific pricing fields are still blank and should be completed manually.',
-//     status: 'Missing input',
-//   },
-// ];
-
 // function getInitialRoute() {
 //   const hash = window.location.hash.replace('#/', '').replace('#', '');
 //   return ROUTES.includes(hash) ? hash : 'home';
@@ -1118,7 +1091,6 @@
 
 // function ReviewPage({ guardedNavigate }) {
 //   const [filter, setFilter] = useState('all');
-//   const filtered = REVIEW_ITEMS.filter((item) => filter === 'all' || item.category === filter);
 
 //   return (
 //     <main className="page-main page-section">
@@ -1398,6 +1370,7 @@ import {
   loginCompany,
   normalizeCompanySession,
   onboardCompany,
+  updateCompanyAssets,
   uploadPdf,
 } from './api';
 
@@ -1425,33 +1398,6 @@ function getProposalFormatStatus(docState) {
   }
   return 'No format detected';
 }
-
-const REVIEW_ITEMS = [
-  {
-    id: 1,
-    tone: 'done',
-    category: 'high',
-    title: 'Company profile aligned',
-    text: 'Registered entity details, sector, and credential summary are already aligned to the tender narrative.',
-    status: 'Ready',
-  },
-  {
-    id: 2,
-    tone: 'warning',
-    category: 'review',
-    title: 'Past performance narrative',
-    text: 'Similar project references were found, but the wording still needs a reviewer pass before submission.',
-    status: 'Needs review',
-  },
-  {
-    id: 3,
-    tone: 'danger',
-    category: 'missing',
-    title: 'Commercial annexure values',
-    text: 'Tender-specific pricing fields are still blank and should be completed manually.',
-    status: 'Missing input',
-  },
-];
 
 function getInitialRoute() {
   const hash = window.location.hash.replace('#/', '').replace('#', '');
@@ -1492,6 +1438,49 @@ function getProposalSections(payload) {
       return `Section ${index + 1}`;
     })
     .filter(Boolean);
+}
+
+function buildReviewItems(proposalResult, docState) {
+  if (!proposalResult) {
+    return [
+      {
+        id: 'draft-missing',
+        tone: docState?.fileName ? 'warning' : 'danger',
+        category: docState?.fileName ? 'review' : 'missing',
+        title: docState?.fileName ? 'Proposal draft not generated yet' : 'Tender and proposal draft missing',
+        text: docState?.fileName
+          ? `Upload is ready for ${docState.fileName}. Generate the proposal before approval review.`
+          : 'Upload a tender and generate a proposal before running review.',
+        status: docState?.fileName ? 'Needs generation' : 'Missing input',
+      },
+    ];
+  }
+
+  const sections = proposalResult?.sections?.length
+    ? proposalResult.sections
+    : ['Generated proposal'];
+
+  return sections.map((section, index) => {
+    const title = typeof section === 'string' ? section : section?.title || section?.heading || `Section ${index + 1}`;
+    const normalized = title.toLowerCase();
+    const isCommercial = /commercial|financial|price|pricing|cost|annexure/.test(normalized);
+    const isCompliance = /compliance|eligibility|qualification|mandatory|deviation/.test(normalized);
+    const tone = isCommercial ? 'danger' : isCompliance ? 'warning' : 'done';
+    const category = isCommercial ? 'missing' : isCompliance ? 'review' : 'high';
+
+    return {
+      id: `${index}-${title}`,
+      tone,
+      category,
+      title,
+      text: isCommercial
+        ? `Generated in ${proposalResult.filename || proposalResult.title || 'the latest proposal'}, but this section usually needs manual commercial values before export.`
+        : isCompliance
+          ? `Generated for ${proposalResult.tenderName || docState?.fileName || 'the current tender'} and should be checked against mandatory tender requirements.`
+          : `Generated for ${proposalResult.tenderName || docState?.fileName || 'the current tender'} and ready for reviewer confirmation.`,
+      status: isCommercial ? 'Missing input' : isCompliance ? 'Needs review' : 'Ready',
+    };
+  });
 }
 
 function sanitizeProposalResult(nextValue) {
@@ -1877,7 +1866,11 @@ function OnboardingPage({ session, saveSession, navigate }) {
       const payload = await onboardCompany(data);
       const nextSession = normalizeCompanySession(payload, {
         company_name: data.company_name,
+        industry: data.industry,
         contact_email: data.contact_email,
+        contact_phone: data.contact_phone,
+        knowledge_base_name: data.knowledge_base?.name || '',
+        proposal_template_name: data.proposal_template?.name || '',
       });
       saveSession(nextSession);
       setStatus({ type: 'success', text: 'Workspace created. Redirecting to dashboard...' });
@@ -2373,7 +2366,13 @@ function ProposalPreviewPanel({ previewData, onViewDraft, onDownload, onDismiss 
   );
 }
 
-function DashboardPage({ session, docState, proposalMode, guardedNavigate, proposalResult }) {
+function DashboardPage({ session, saveSession, docState, proposalMode, guardedNavigate, proposalResult, saveProposalResult, saveFeedback }) {
+  const assetFilesRef = useRef({});
+  const [assetStatus, setAssetStatus] = useState({
+    type: 'info',
+    text: 'Replace the knowledge base or proposal template whenever workspace inputs change.',
+  });
+  const [assetLoading, setAssetLoading] = useState(false);
   const queue = [
     {
       name: docState?.fileName || 'New tender package',
@@ -2397,6 +2396,52 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
       due: 'Open',
     },
   ];
+
+  async function handleAssetUpdate(event) {
+    event.preventDefault();
+    const knowledgeBase = assetFilesRef.current.knowledge_base || null;
+    const proposalTemplate = assetFilesRef.current.proposal_template || null;
+
+    if (!knowledgeBase && !proposalTemplate) {
+      setAssetStatus({ type: 'error', text: 'Choose a knowledge base or proposal template first.' });
+      return;
+    }
+
+    if (!session?.company_id) {
+      setAssetStatus({ type: 'error', text: 'Sign in to a workspace before updating assets.' });
+      return;
+    }
+
+    setAssetLoading(true);
+    setAssetStatus({ type: 'info', text: 'Updating workspace assets...' });
+
+    try {
+      const payload = await updateCompanyAssets({
+        companyId: session.company_id,
+        knowledgeBase,
+        proposalTemplate,
+      });
+      saveSession({
+        ...session,
+        knowledge_base_name: payload.knowledge_base_name || session.knowledge_base_name,
+        proposal_template_name: payload.proposal_template_name || session.proposal_template_name,
+        knowledge_base_path: payload.knowledge_base_path || session.knowledge_base_path,
+        template_path: payload.template_path || session.template_path,
+      });
+      saveProposalResult(null);
+      saveFeedback({});
+      assetFilesRef.current = {};
+      event.currentTarget.reset();
+      setAssetStatus({
+        type: 'success',
+        text: 'Workspace assets updated. Generate a fresh proposal to use the latest files.',
+      });
+    } catch (error) {
+      setAssetStatus({ type: 'error', text: error.message || 'Unable to update workspace assets right now.' });
+    } finally {
+      setAssetLoading(false);
+    }
+  }
 
   return (
     <main className="page-main page-section">
@@ -2475,6 +2520,32 @@ function DashboardPage({ session, docState, proposalMode, guardedNavigate, propo
             <button className="btn btn--primary" onClick={() => guardedNavigate(docState?.fileName ? 'processing' : 'upload')}>
               {docState?.fileName ? 'Open Processing' : 'Start Intake'}
             </button>
+          </div>
+          <div className="sidebar-card">
+            <div className="stack-panel__eyebrow">Workspace Assets</div>
+            <h3>Knowledge base and proposal template</h3>
+            <div className="asset-current">
+              <PreviewItem label="Knowledge base" value={session?.knowledge_base_name || 'Not available'} />
+              <PreviewItem label="Proposal template" value={session?.proposal_template_name || 'Not available'} />
+            </div>
+            <form className="asset-form" onSubmit={handleAssetUpdate}>
+              <FileField
+                label="Replace knowledge base"
+                name="knowledge_base"
+                required={false}
+                onChange={(file) => { assetFilesRef.current.knowledge_base = file; }}
+              />
+              <FileField
+                label="Replace proposal template"
+                name="proposal_template"
+                required={false}
+                onChange={(file) => { assetFilesRef.current.proposal_template = file; }}
+              />
+              <div className={`auth-message auth-message--${assetStatus.type}`}>{assetStatus.text}</div>
+              <button className="btn btn--primary" type="submit" disabled={assetLoading}>
+                {assetLoading ? 'Updating...' : 'Update Workspace Assets'}
+              </button>
+            </form>
           </div>
           <div className="sidebar-card">
             <div className="stack-panel__eyebrow">Workspace Focus</div>
@@ -2588,9 +2659,10 @@ function ProposalPage({ proposalResult, docState, guardedNavigate }) {
   );
 }
 
-function ReviewPage({ guardedNavigate }) {
+function ReviewPage({ guardedNavigate, proposalResult, docState }) {
   const [filter, setFilter] = useState('all');
-  const filtered = REVIEW_ITEMS.filter((item) => filter === 'all' || item.category === filter);
+  const reviewItems = useMemo(() => buildReviewItems(proposalResult, docState), [proposalResult, docState]);
+  const filtered = reviewItems.filter((item) => filter === 'all' || item.category === filter);
 
   return (
     <main className="page-main page-section">
@@ -2619,6 +2691,17 @@ function ReviewPage({ guardedNavigate }) {
               </div>
             </article>
           ))}
+          {!filtered.length && (
+            <article className="review-card">
+              <div className="review-card__head">
+                <h3>No sections in this filter</h3>
+                <span className="status-pill status-pill--review">Empty</span>
+              </div>
+              <div className="issue-strip issue-strip--warning">
+                The generated proposal does not currently have sections matching this review state.
+              </div>
+            </article>
+          )}
         </div>
 
         <section className="approval-band">
@@ -2743,7 +2826,7 @@ function TextField({ label, name, type = 'text', placeholder }) {
 }
 
 /* FIX: FileField now accepts an onChange prop to capture the File object */
-function FileField({ label, name, onChange }) {
+function FileField({ label, name, onChange, required = true }) {
   return (
     <div className="field">
       <label>
@@ -2751,7 +2834,7 @@ function FileField({ label, name, onChange }) {
         <input
           name={name}
           type="file"
-          required
+          required={required}
           onChange={onChange ? (e) => onChange(e.target.files?.[0] || null) : undefined}
         />
       </label>

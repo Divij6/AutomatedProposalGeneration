@@ -101,6 +101,10 @@ def _extract_table_items(sections: list) -> list:
 
                 items.append({
                     "title": cell_text,
+                    "section_title": section.get("title", ""),
+                    "table_headers": header,
+                    "parent_titles": [section.get("title", "")] if section.get("title") else [],
+                    "nearby_clause_context": " | ".join(str(cell).strip() for cell in row if str(cell).strip()),
                     "sec_index": sec_idx,
                     "tbl_index": tbl_idx,
                     "row_index": row_idx,
