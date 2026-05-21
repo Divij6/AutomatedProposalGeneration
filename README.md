@@ -13,7 +13,9 @@ This project solves that problem by building an automated tender proposal assist
 - Detect whether a tender contains its own proposal response format.
 - Extract, chunk, embed, and store tender content for semantic retrieval.
 - Retrieve relevant tender and company context for each proposal section.
-- Generate a proposal document in DOCX format.
+- Generate a proposal section-by-section with a live streaming preview.
+- Regenerate individual sections with reviewer instructions.
+- Generate a proposal document in DOCX format through the legacy download endpoint.
 - Let the frontend guide users through onboarding, upload, processing, review, and export.
 
 ## Solution Overview
@@ -27,7 +29,9 @@ The system works as a pipeline:
 5. The backend parses the PDF, extracts sections and tables, detects proposal formats, chunks the tender, and stores embeddings.
 6. The frontend checks whether the uploaded tender has a built-in proposal format.
 7. The user generates a proposal using either the tender format or the onboarded company template.
-8. A LangGraph workflow retrieves relevant context, generates section content, validates output, and compiles a downloadable DOCX proposal.
+8. The React processing page streams generated sections as Server-Sent Events and shows a live proposal preview.
+9. Reviewers can regenerate individual sections with specific instructions.
+10. The original DOCX generation endpoint remains available for downloadable proposal output.
 
 ## Tech Stack
 
@@ -52,14 +56,15 @@ The system works as a pipeline:
 - PyMuPDF for PDF extraction
 - Docling for document parsing
 - LangGraph for proposal generation flow
-- OpenAI-compatible client pointed at local Ollama
+- Groq as the primary generation LLM
+- OpenAI-compatible client pointed at local Ollama as fallback
 
 ### Storage, Retrieval, and AI Services
 
 - Supabase database and object storage
 - Qdrant vector database
 - Cohere multilingual embeddings
-- Ollama local LLM endpoint for generation
+- Groq-hosted generation with local Ollama fallback
 
 ## Project Structure
 
@@ -121,6 +126,15 @@ Important endpoints:
 
 - `POST /generate-proposal`  
   Generates and returns `generated_proposal.docx` using either the tender response format or the company template.
+
+- `POST /generate-proposal-stream`  
+  Runs the same proposal generation workflow but returns a Server-Sent Events stream. The frontend receives one `section` event per generated section, then a final `done` event.
+
+- `POST /regenerate-section`  
+  Regenerates one section using the same LLM and retrieval setup used by the generation node. The request includes the section title, section index, and reviewer instruction.
+
+- `GET /check-proposal-format`  
+  Returns whether the uploaded tender contains a proposal format and whether detected tables are present.
 
 ### `config.py`
 
@@ -214,6 +228,8 @@ Main React application. It contains the full single-page workflow:
 - Processing status
 - Dashboard
 - Proposal generation
+- Live proposal preview
+- Per-section regeneration
 - Review
 - Export
 
@@ -228,6 +244,8 @@ Central API client for the frontend. It reads backend configuration from Vite en
 - `uploadPdf`
 - `checkProposalFormat`
 - `generateProposal`
+- `generateProposalStream`
+- `regenerateSection`
 - `normalizeCompanySession`
 
 ### `frontend/src/styles.css`
@@ -278,7 +296,8 @@ VITE_CHECK_PROPOSAL_FORMAT_ENDPOINT=/check-proposal-format
 ```
 
 Set `VITE_GENERATE_PROPOSAL_BASE_URL` to a friend's ngrok URL when only
-`POST /generate-proposal` should run on that machine. Leave it blank to use
+proposal-generation routes should run on that machine. The streaming and
+section-regeneration calls also use this base URL. Leave it blank to use
 `VITE_BACKEND_BASE_URL` for every API call.
 
 Optional frontend Supabase values can be configured only if a public anon key and proper Row Level Security policies are available:
@@ -298,9 +317,10 @@ VITE_SUPABASE_EMAIL_COLUMN=contact_email
 - Supabase project with required tables and storage buckets
 - Qdrant Cloud cluster
 - Cohere API key
-- Ollama running locally for proposal generation
+- Groq API key for primary proposal generation
+- Ollama running locally for fallback proposal generation
 
-The generation node currently calls an OpenAI-compatible local endpoint:
+The generation node tries Groq first and falls back to an OpenAI-compatible local endpoint:
 
 ```text
 http://localhost:11434/v1
@@ -465,9 +485,54 @@ Fields:
 
 Returns a downloadable DOCX file.
 
+### Stream Proposal Generation
+
+```http
+POST /generate-proposal-stream
+Content-Type: multipart/form-data
+```
+
+Fields:
+
+- `company_id`
+- `doc_id`
+- `format_source`
+
+Returns an SSE stream with events in this shape:
+
+```text
+data: {"type":"section","index":0,"title":"...","content":"..."}
+data: {"type":"done","total_sections":4}
+data: {"type":"error","message":"..."}
+```
+
+### Regenerate Section
+
+```http
+POST /regenerate-section
+Content-Type: multipart/form-data
+```
+
+Fields:
+
+- `company_id`
+- `doc_id`
+- `section_title`
+- `section_index`
+- `user_instruction`
+
+Returns:
+
+```json
+{
+  "title": "Section title",
+  "content": "Regenerated section content"
+}
+```
+
 ## End-to-End Workflow
 
-1. Start Supabase, Qdrant, and Ollama requirements.
+1. Start Supabase, Qdrant, and Ollama requirements, and configure the Groq API key.
 2. Start the FastAPI backend on port `8000`.
 3. Start the Vite frontend on port `5173`.
 4. Open the frontend in the browser.
@@ -475,8 +540,9 @@ Returns a downloadable DOCX file.
 6. Upload a tender PDF.
 7. Let the backend parse, chunk, embed, and detect proposal format.
 8. Choose whether to generate using tender format or onboarded template.
-9. Generate the proposal.
-10. Review and export the generated DOCX file.
+9. Generate the proposal and watch sections appear in the live preview.
+10. Regenerate any section that needs reviewer direction.
+11. Review and export the generated proposal.
 
 ## Production Notes
 
