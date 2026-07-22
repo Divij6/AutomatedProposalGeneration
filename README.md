@@ -1,4 +1,4 @@
-# DataSmith AI - Tender Proposal Automation and Procurement Orchestration
+# TenderAI: Multi-Agent Tender Response & Procurement Orchestration 
 
 DataSmith AI is a full-stack tender intelligence platform that parses tender documents, detects bidder-response formats, retrieves company knowledge, generates structured proposal drafts, and now continues the workflow into active procurement orchestration.
 
