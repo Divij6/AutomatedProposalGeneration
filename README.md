@@ -1,6 +1,6 @@
 # TenderAI: Multi-Agent Tender Response & Procurement Orchestration 
 
-DataSmith AI is a full-stack tender intelligence platform that parses tender documents, detects bidder-response formats, retrieves company knowledge, generates structured proposal drafts, and now continues the workflow into active procurement orchestration.
+TenderAI is a full-stack tender intelligence platform that parses tender documents, detects bidder-response formats, retrieves company knowledge, generates structured proposal drafts, and now continues the workflow into active procurement orchestration.
 
 After proposal generation, the system can automatically derive supplier-facing requirements from tender sections and BOQ rows, send real RFQ emails to matched vendors, create pending quote records in Supabase, score proposal compliance using Cohere rerank semantic similarity, identify reusable knowledge from Qdrant, and persist orchestration runs in Supabase.
 
